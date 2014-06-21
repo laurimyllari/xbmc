@@ -37,6 +37,10 @@ uniform mat4      m_yuvmat;
 
 uniform float     m_stretch;
 
+uniform sampler2D m_dither;
+uniform float     m_ditherquant;
+uniform vec2      m_dithersize;
+
 vec2 stretch(vec2 pos)
 {
 #if (XBMC_STRETCH)
@@ -66,8 +70,6 @@ void main()
                  , 1.0 );
 
   rgb   = m_yuvmat * yuv;
-  rgb.a = gl_Color.a;
-  gl_FragColor = rgb;
 
 #elif defined(XBMC_VDPAU_NV12)
 
@@ -78,8 +80,6 @@ void main()
                  , 1.0 );
 
   rgb   = m_yuvmat * yuv;
-  rgb.a = gl_Color.a;
-  gl_FragColor = rgb;
 
 #elif defined(XBMC_YUY2) || defined(XBMC_UYVY)
 
@@ -118,8 +118,11 @@ void main()
   vec4  yuv     = vec4(outY, outUV, 1.0);
   vec4  rgb     = m_yuvmat * yuv;
 
-  gl_FragColor   = rgb;
-  gl_FragColor.a = gl_Color.a;
-
 #endif
+
+  vec2 ditherpos = gl_FragCoord.xy / m_dithersize;
+  float ditherval = texture2D(m_dither, ditherpos).r;
+  ditherval = ditherval * 8.0;
+  gl_FragColor = floor(rgb * m_ditherquant + ditherval) / m_ditherquant;
+  gl_FragColor.a = gl_Color.a;
 }

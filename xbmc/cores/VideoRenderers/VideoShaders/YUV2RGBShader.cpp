@@ -22,6 +22,7 @@
 #include "system.h"
 #include "../RenderFlags.h"
 #include "YUV2RGBShader.h"
+#include "dither.h"
 #include "settings/AdvancedSettings.h"
 #include "guilib/TransformMatrix.h"
 #include "windowing/WindowingFactory.h"
@@ -315,8 +316,71 @@ YUV2RGBProgressiveShader::YUV2RGBProgressiveShader(bool rect, unsigned flags, ER
 #elif HAS_GLES == 2
   PixelShader()->LoadSource("yuv2rgb_basic_gles.glsl", m_defines);
 #endif
+  m_tDitherTex = 0;
 }
 
+void YUV2RGBProgressiveShader::OnCompiledAndLinked()
+{
+  if (m_tDitherTex)
+  {
+    glDeleteTextures(1, &m_tDitherTex);
+    m_tDitherTex = 0;
+  }
+
+  glActiveTexture(GL_TEXTURE3);
+  glGenTextures(1, &m_tDitherTex);
+  if ( m_tDitherTex <= 0 )
+  {
+    CLog::Log(LOGERROR, "GL: YUV2RGBProgressiveShader: Error creating dither texture");
+    return;
+  }
+  glBindTexture(GL_TEXTURE_2D, m_tDitherTex);
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+  glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, dither_size, dither_size, 0, GL_RED,
+GL_SHORT, dither_matrix);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  glActiveTexture(GL_TEXTURE0);
+  VerifyGLState();
+
+  m_hDither = glGetUniformLocation(ProgramHandle(), "m_dither");
+  m_hDitherQuant = glGetUniformLocation(ProgramHandle(), "m_ditherquant");
+  m_hDitherSize = glGetUniformLocation(ProgramHandle(), "m_dithersize");
+  VerifyGLState();
+
+  BaseYUV2RGBGLSLShader::OnCompiledAndLinked();
+}
+
+bool YUV2RGBProgressiveShader::OnEnabled()
+{
+  if (!BaseYUV2RGBGLSLShader::OnEnabled())
+    return false;
+
+  glActiveTexture(GL_TEXTURE3);
+  glBindTexture(GL_TEXTURE_2D, m_tDitherTex);
+  glActiveTexture(GL_TEXTURE0);
+  VerifyGLState();
+  glUniform1i(m_hDither, 3);
+  VerifyGLState();
+  glUniform1f(m_hDitherQuant, 255.0); // (1<<depth)-1
+  VerifyGLState();
+  glUniform2f(m_hDitherSize, dither_size, dither_size);
+  VerifyGLState();
+  return true;
+}
+
+void YUV2RGBProgressiveShader::Free()
+{
+  if (m_tDitherTex)
+  {
+    glDeleteTextures(1, &m_tDitherTex);
+    m_tDitherTex = 0;
+  }
+  BaseYUV2RGBGLSLShader::Free();
+}
 
 //////////////////////////////////////////////////////////////////////
 // YUV2RGBBobShader - YUV2RGB with Bob deinterlacing

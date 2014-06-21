@@ -171,6 +171,14 @@ namespace Shaders {
   {
   public:
     YUV2RGBProgressiveShader(bool rect=false, unsigned flags=0, ERenderFormat format=RENDER_FMT_NONE, bool stretch = false);
+    void OnCompiledAndLinked();
+    bool OnEnabled();
+    void Free();
+  protected:
+    GLuint  m_tDitherTex;
+    GLint   m_hDither;
+    GLint   m_hDitherQuant;
+    GLint   m_hDitherSize;
   };
 
   class YUV2RGBBobShader : public BaseYUV2RGBGLSLShader
