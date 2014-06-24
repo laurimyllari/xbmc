@@ -186,6 +186,8 @@ libusb_disabled="== libusb disabled. Plug and play USB device support will not b
 libusb_disabled_udev_found="== libusb disabled. =="
 libcec_enabled="== libcec enabled. =="
 libcec_disabled="== libcec disabled. CEC adapter support will not be available. =="
+liblcms2_enabled="== liblcms2 enabled. =="
+liblcms2_disabled="== liblcms2 disabled. Color management will not be available. =="
 
 dashes="------------------------"
 final_message="\n  XBMC Configuration:"
@@ -503,6 +505,12 @@ AC_ARG_ENABLE([libcec],
   [enable libcec support (default is auto)])],
   [use_libcec=$enableval],
   [use_libcec=auto])
+
+AC_ARG_ENABLE([liblcms2],
+  [AS_HELP_STRING([--enable-liblcms2],
+  [enable liblcms2 support (default is auto)])],
+  [use_liblcms2=$enableval],
+  [use_liblcms2=auto])
 
 AC_ARG_ENABLE([libmp3lame],
   [AS_HELP_STRING([--enable-libmp3lame],
@@ -1669,6 +1677,31 @@ else
   AC_MSG_NOTICE($libcec_disabled)
 fi
 
+# liblcms2
+USE_LIBLCMS2=0
+if test "x$use_liblcms2" != "xno"; then
+  if test "x$use_liblcms2" != "xno"; then
+    if test "x$use_liblcms2" != "xauto"; then
+      PKG_CHECK_MODULES([LCMS2],[lcms2 >= 2.6],,[use_liblcms2="no";AC_MSG_ERROR($liblcms2_disabled)])
+    else
+      PKG_CHECK_MODULES([LCMS2],[lcms2 >= 2.6],,[use_liblcms2="no";AC_MSG_RESULT($liblcms2_disabled)])
+    fi
+
+    if test "x$use_liblcms2" != "xno"; then
+      INCLUDES="$INCLUDES $LCMS2_CFLAGS"
+      USE_LIBLCMS2=1;AC_DEFINE([HAVE_LIBLCMS2],[1],["Define to 1 if liblcms2 is installed"])
+      XB_FIND_SONAME([LIBLCMS2],[lcms2],[use_liblcms2])
+      AC_MSG_NOTICE($liblcms2_enabled)
+    else
+      use_liblcms2="no"
+      AC_MSG_NOTICE($liblcms2_disabled)
+    fi
+  fi
+else
+  use_liblcms2="no"
+  AC_MSG_NOTICE($liblcms2_disabled)
+fi
+
 # libcap
 if test "$use_libcap" != "no"; then
   AC_CHECK_HEADERS([sys/capability.h],,
@@ -2436,6 +2469,12 @@ if test "x$use_libcec" != "xno"; then
   final_message="$final_message\n  libcec support:\tYes"
 else
   final_message="$final_message\n  libcec support:\tNo"
+fi
+
+if test "x$use_liblcms2" != "xno"; then
+  final_message="$final_message\n  liblcms2 support:\tYes"
+else
+  final_message="$final_message\n  liblcms2 support:\tNo"
 fi
 
 if test "x$use_libmp3lame" != "xno"; then
