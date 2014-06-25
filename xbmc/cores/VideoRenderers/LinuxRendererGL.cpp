@@ -35,6 +35,7 @@
 #include "settings/MediaSettings.h"
 #include "settings/Settings.h"
 #include "VideoShaders/YUV2RGBShader.h"
+#include "VideoShaders/LUTShader.h"
 #include "VideoShaders/VideoFilterShader.h"
 #include "windowing/WindowingFactory.h"
 #include "guilib/Texture.h"
@@ -972,10 +973,10 @@ void CLinuxRendererGL::LoadShaders(int field)
       if (glCreateProgram && tryGlsl)
       {
         // create regular progressive scan shader
-        m_pYUVShader = new YUV2RGBProgressiveShader(m_textureTarget==GL_TEXTURE_RECTANGLE_ARB, m_iFlags, m_format,
+        m_pYUVShader = new LUTProgressiveShader(m_textureTarget==GL_TEXTURE_RECTANGLE_ARB, m_iFlags, m_format,
                                                     m_nonLinStretch && m_renderQuality == RQ_SINGLEPASS);
 
-        CLog::Log(LOGNOTICE, "GL: Selecting Single Pass YUV 2 RGB shader");
+        CLog::Log(LOGNOTICE, "GL: Selecting Single Pass 3DLUT shader");
 
         if (m_pYUVShader && m_pYUVShader->CompileAndLink())
         {
@@ -989,7 +990,7 @@ void CLinuxRendererGL::LoadShaders(int field)
           delete m_pYUVShader;
           m_pYUVShader = NULL;
         }
-        CLog::Log(LOGERROR, "GL: Error enabling YUV2RGB GLSL shader");
+        CLog::Log(LOGERROR, "GL: Error enabling 3DLUT GLSL shader");
         // drop through and try ARB
       }
       case RENDER_METHOD_ARB:
@@ -1000,7 +1001,7 @@ void CLinuxRendererGL::LoadShaders(int field)
         m_renderMethod = RENDER_ARB ;
 
         // create regular progressive scan shader
-        m_pYUVShader = new YUV2RGBProgressiveShaderARB(m_textureTarget==GL_TEXTURE_RECTANGLE_ARB, m_iFlags, m_format);
+        // m_pYUVShader = new YUV2RGBProgressiveShaderARB(m_textureTarget==GL_TEXTURE_RECTANGLE_ARB, m_iFlags, m_format);
         CLog::Log(LOGNOTICE, "GL: Selecting Single Pass ARB YUV2RGB shader");
 
         if (m_pYUVShader && m_pYUVShader->CompileAndLink())

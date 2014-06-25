@@ -40,6 +40,7 @@ class CRenderCapture;
 
 class CBaseTexture;
 namespace Shaders { class BaseYUV2RGBShader; }
+namespace Shaders { class BaseLUTShader; }
 namespace Shaders { class BaseVideoFilterShader; }
 namespace VAAPI   { struct CHolder; }
 namespace VDPAU   { class CVdpauRenderPicture; }
@@ -301,7 +302,8 @@ protected:
 
   void GetPlaneTextureSize(YUVPLANE& plane);
 
-  Shaders::BaseYUV2RGBShader     *m_pYUVShader;
+  Shaders::BaseLUTShader         *m_pYUVShader;
+  // Shaders::BaseYUV2RGBShader     *m_pYUVShader;
   Shaders::BaseVideoFilterShader *m_pVideoFilterShader;
   ESCALINGMETHOD m_scalingMethod;
   ESCALINGMETHOD m_scalingMethodGui;
