@@ -1679,27 +1679,17 @@ fi
 
 # liblcms2
 USE_LIBLCMS2=0
-if test "x$use_liblcms2" != "xno"; then
-  if test "x$use_liblcms2" != "xno"; then
-    if test "x$use_liblcms2" != "xauto"; then
-      PKG_CHECK_MODULES([LCMS2],[lcms2 >= 2.6],,[use_liblcms2="no";AC_MSG_ERROR($liblcms2_disabled)])
-    else
-      PKG_CHECK_MODULES([LCMS2],[lcms2 >= 2.6],,[use_liblcms2="no";AC_MSG_RESULT($liblcms2_disabled)])
-    fi
-
-    if test "x$use_liblcms2" != "xno"; then
-      INCLUDES="$INCLUDES $LCMS2_CFLAGS"
-      USE_LIBLCMS2=1;AC_DEFINE([HAVE_LIBLCMS2],[1],["Define to 1 if liblcms2 is installed"])
-      XB_FIND_SONAME([LIBLCMS2],[lcms2],[use_liblcms2])
-      AC_MSG_NOTICE($liblcms2_enabled)
-    else
-      use_liblcms2="no"
-      AC_MSG_NOTICE($liblcms2_disabled)
-    fi
-  fi
+if test "$use_liblcms2" = "auto"; then
+  PKG_CHECK_MODULES([LCMS2],[lcms2],,[use_liblcms2="no";AC_MSG_RESULT($liblcms2_not_found)])
+elif test "$use_liblcms2" = "yes" ; then
+  PKG_CHECK_MODULES([LCMS2],[lcms2],,[use_liblcms2="no";AC_MSG_ERROR($liblcms2_not_found)])
 else
-  use_liblcms2="no"
   AC_MSG_NOTICE($liblcms2_disabled)
+fi
+
+if test "x$use_liblcms2" != "xno"; then
+  USE_LIBLCMS2=1;INCLUDES="$INCLUDES $LCMS2_CFLAGS";LIBS="$LIBS $LCMS2_LIBS"
+  AC_DEFINE([HAVE_LIBLCMS2],[1],["Define to 1 if liblcms2 is installed"])
 fi
 
 # libcap
