@@ -30,6 +30,10 @@
 #include "utils/GLUtils.h"
 #endif
 #include "cores/VideoRenderers/RenderFormats.h"
+#if defined(HAVE_LIBLCMS2)
+#include "dither.h"
+#include "LutLoader.h"
+#endif
 
 #include <string>
 #include <sstream>
@@ -301,6 +305,315 @@ BaseYUV2RGBARBShader::BaseYUV2RGBARBShader(unsigned flags, ERenderFormat format)
   m_hVTex  = -1;
 }
 #endif
+
+//////////////////////////////////////////////////////////////////////
+// Base3dLUTGLSLShader - base class for GLSL 3dLUT shaders
+//////////////////////////////////////////////////////////////////////
+
+#if defined(HAVE_LIBLCMS2) && defined(HAS_GL) // no GLES2 support yet
+Base3dLUTGLSLShader::Base3dLUTGLSLShader(bool rect, unsigned flags, ERenderFormat format, bool stretch)
+{
+  m_width      = 1;
+  m_height     = 1;
+  m_field      = 0;
+  m_flags      = flags;
+  m_format     = format;
+
+  m_black      = 0.0f;
+  m_contrast   = 1.0f;
+
+  m_stretch = 0.0f;
+
+  // textures
+  m_tCLUTTex    = 0;
+  m_tOutRLUTTex    = 0;
+  m_tOutGLUTTex    = 0;
+  m_tOutBLUTTex    = 0;
+  m_tDitherTex  = 0;
+
+  // shader attribute handles
+  m_hYTex        = -1;
+  m_hUTex        = -1;
+  m_hVTex        = -1;
+  m_hCLUT        = -1;
+  m_hOutRLUT     = -1;
+  m_hOutGLUT     = -1;
+  m_hOutBLUT     = -1;
+  m_hDither      = -1;
+  m_hDitherQuant = -1;
+  m_hDitherSize  = -1;
+  m_hStretch     = -1;
+  m_hStep        = -1;
+
+  if(rect)
+    m_defines += "#define XBMC_texture_rectangle 1\n";
+  else
+    m_defines += "#define XBMC_texture_rectangle 0\n";
+
+  if(g_advancedSettings.m_GLRectangleHack)
+    m_defines += "#define XBMC_texture_rectangle_hack 1\n";
+  else
+    m_defines += "#define XBMC_texture_rectangle_hack 0\n";
+
+  //don't compile in stretch support when it's not needed
+  if (stretch)
+    m_defines += "#define XBMC_STRETCH 1\n";
+  else
+    m_defines += "#define XBMC_STRETCH 0\n";
+
+  if (m_format == RENDER_FMT_YUV420P ||
+      m_format == RENDER_FMT_YUV420P10 ||
+      m_format == RENDER_FMT_YUV420P16)
+    m_defines += "#define XBMC_YV12\n";
+  else if (m_format == RENDER_FMT_NV12)
+    m_defines += "#define XBMC_NV12\n";
+  else if (m_format == RENDER_FMT_YUYV422)
+    m_defines += "#define XBMC_YUY2\n";
+  else if (m_format == RENDER_FMT_UYVY422)
+    m_defines += "#define XBMC_UYVY\n";
+  else if (RENDER_FMT_VDPAU_420)
+    m_defines += "#define XBMC_VDPAU_NV12\n";
+  else
+    CLog::Log(LOGERROR, "GL: Base3dLUTGLSLShader - unsupported format %d", m_format);
+
+  VertexShader()->LoadSource("yuv2rgb_vertex.glsl", m_defines);
+
+  CLog::Log(LOGDEBUG, "GL: Base3dLUTGLSLShader: defines:\n%s", m_defines.c_str());
+}
+
+void Base3dLUTGLSLShader::OnCompiledAndLinked()
+{
+  float *CLUT, *outluts;
+  int CLUTsize, outlutsize;
+
+  CheckAndFreeTextures();
+
+  m_hYTex        = glGetUniformLocation(ProgramHandle(), "m_sampY");
+  m_hUTex        = glGetUniformLocation(ProgramHandle(), "m_sampU");
+  m_hVTex        = glGetUniformLocation(ProgramHandle(), "m_sampV");
+  m_hCLUT        = glGetUniformLocation(ProgramHandle(), "m_CLUT");
+  m_hOutRLUT     = glGetUniformLocation(ProgramHandle(), "m_OutLUTR");
+  m_hOutGLUT     = glGetUniformLocation(ProgramHandle(), "m_OutLUTG");
+  m_hOutBLUT     = glGetUniformLocation(ProgramHandle(), "m_OutLUTB");
+  m_hDither      = glGetUniformLocation(ProgramHandle(), "m_dither");
+  m_hDitherQuant = glGetUniformLocation(ProgramHandle(), "m_ditherquant");
+  m_hDitherSize  = glGetUniformLocation(ProgramHandle(), "m_dithersize");
+  m_hStretch     = glGetUniformLocation(ProgramHandle(), "m_stretch");
+  m_hStep        = glGetUniformLocation(ProgramHandle(), "m_step");
+  VerifyGLState();
+
+  // load LUTs
+  if ( loadLUT(m_flags, &CLUT, &CLUTsize, &outluts, &outlutsize) )
+  {
+    CLog::Log(LOGERROR, "Error loading the LUT");
+    return;
+  }
+
+  glGenTextures(1, &m_tDitherTex);
+  glActiveTexture(GL_TEXTURE3);
+  if ( m_tDitherTex <= 0 )
+  {
+    CLog::Log(LOGERROR, "Error creating dither texture");
+    return;
+  }
+  glBindTexture(GL_TEXTURE_2D, m_tDitherTex);
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+  glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, dither_size, dither_size, 0, GL_RED, GL_SHORT, dither_matrix);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  glActiveTexture(GL_TEXTURE0);
+  VerifyGLState();
+
+  glGenTextures(1, &m_tCLUTTex);
+  glActiveTexture(GL_TEXTURE4);
+  if ( m_tCLUTTex <= 0 )
+  {
+    CLog::Log(LOGERROR, "Error creating 3DLUT texture");
+    return;
+  }
+  glBindTexture(GL_TEXTURE_3D, m_tCLUTTex);
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+  glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+  glTexImage3D(GL_TEXTURE_3D, 0, GL_RGB32F, CLUTsize, CLUTsize, CLUTsize, 0, GL_RGB, GL_FLOAT, CLUT);
+  glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+  glActiveTexture(GL_TEXTURE0);
+  VerifyGLState();
+
+  glGenTextures(1, &m_tOutRLUTTex);
+  glActiveTexture(GL_TEXTURE5);
+  if ( m_tOutRLUTTex <= 0 )
+  {
+    CLog::Log(LOGERROR, "Error creating output 1DLUT texture");
+    return;
+  }
+  glBindTexture(GL_TEXTURE_1D, m_tOutRLUTTex);
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+  glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+  glTexImage1D(GL_TEXTURE_1D, 0, GL_RED, outlutsize, 0, GL_RED, GL_FLOAT, outluts+0*outlutsize);
+  glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glActiveTexture(GL_TEXTURE0);
+  VerifyGLState();
+
+  glGenTextures(1, &m_tOutGLUTTex);
+  glActiveTexture(GL_TEXTURE6);
+  if ( m_tOutGLUTTex <= 0 )
+  {
+    CLog::Log(LOGERROR, "Error creating output 1DLUT texture");
+    return;
+  }
+  glBindTexture(GL_TEXTURE_1D, m_tOutGLUTTex);
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+  glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+  glTexImage1D(GL_TEXTURE_1D, 0, GL_RED, outlutsize, 0, GL_RED, GL_FLOAT, outluts+1*outlutsize);
+  glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glActiveTexture(GL_TEXTURE0);
+  VerifyGLState();
+
+  glGenTextures(1, &m_tOutBLUTTex);
+  glActiveTexture(GL_TEXTURE7);
+  if ( m_tOutBLUTTex <= 0 )
+  {
+    CLog::Log(LOGERROR, "Error creating output 1DLUT texture");
+    return;
+  }
+  glBindTexture(GL_TEXTURE_1D, m_tOutBLUTTex);
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+  glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+  glTexImage1D(GL_TEXTURE_1D, 0, GL_RED, outlutsize, 0, GL_RED, GL_FLOAT, outluts+2*outlutsize);
+  glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glActiveTexture(GL_TEXTURE0);
+  VerifyGLState();
+
+  m_hCLUT = glGetUniformLocation(ProgramHandle(), "m_CLUT");
+  m_hOutRLUT = glGetUniformLocation(ProgramHandle(), "m_OutLUTR");
+  m_hOutGLUT = glGetUniformLocation(ProgramHandle(), "m_OutLUTG");
+  m_hOutBLUT = glGetUniformLocation(ProgramHandle(), "m_OutLUTB");
+  m_hDither = glGetUniformLocation(ProgramHandle(), "m_dither");
+  m_hDitherQuant = glGetUniformLocation(ProgramHandle(), "m_ditherquant");
+  m_hDitherSize = glGetUniformLocation(ProgramHandle(), "m_dithersize");
+  VerifyGLState();
+
+  free(CLUT);
+  free(outluts);
+
+}
+
+bool Base3dLUTGLSLShader::OnEnabled()
+{
+  // set shader attributes once enabled
+  glUniform1i(m_hYTex, 0);
+  glUniform1i(m_hUTex, 1);
+  glUniform1i(m_hVTex, 2);
+  glUniform1f(m_hStretch, m_stretch);
+  glUniform2f(m_hStep, 1.0 / m_width, 1.0 / m_height);
+
+  // set texture units
+  glUniform1i(m_hDither, 3);
+  glUniform1i(m_hCLUT, 4);
+  glUniform1i(m_hOutRLUT, 5);
+  glUniform1i(m_hOutGLUT, 6);
+  glUniform1i(m_hOutBLUT, 7);
+  VerifyGLState();
+
+  // bind textures
+  glActiveTexture(GL_TEXTURE3);
+  glBindTexture(GL_TEXTURE_2D, m_tDitherTex);
+  glActiveTexture(GL_TEXTURE4);
+  glBindTexture(GL_TEXTURE_3D, m_tCLUTTex);
+  glActiveTexture(GL_TEXTURE5);
+  glBindTexture(GL_TEXTURE_1D, m_tOutRLUTTex);
+  glActiveTexture(GL_TEXTURE6);
+  glBindTexture(GL_TEXTURE_1D, m_tOutGLUTTex);
+  glActiveTexture(GL_TEXTURE7);
+  glBindTexture(GL_TEXTURE_1D, m_tOutBLUTTex);
+  glActiveTexture(GL_TEXTURE0);
+  VerifyGLState();
+
+  // dither settings
+  glUniform1f(m_hDitherQuant, 255.0); // (1<<depth)-1
+  VerifyGLState();
+  glUniform2f(m_hDitherSize, dither_size, dither_size);
+  VerifyGLState();
+
+  return true;
+}
+
+void Base3dLUTGLSLShader::OnDisabled()
+{
+  glActiveTexture(GL_TEXTURE3);
+  glDisable(GL_TEXTURE_2D);
+  glActiveTexture(GL_TEXTURE4);
+  glDisable(GL_TEXTURE_3D);
+  glActiveTexture(GL_TEXTURE5);
+  glDisable(GL_TEXTURE_1D);
+  glActiveTexture(GL_TEXTURE6);
+  glDisable(GL_TEXTURE_1D);
+  glActiveTexture(GL_TEXTURE7);
+  glDisable(GL_TEXTURE_1D);
+  glActiveTexture(GL_TEXTURE0);
+  VerifyGLState();
+}
+
+void Base3dLUTGLSLShader::Free()
+{
+  CheckAndFreeTextures();
+}
+
+void Base3dLUTGLSLShader::CheckAndFreeTextures()
+{
+  if (m_tDitherTex)
+  {
+    glDeleteTextures(1, &m_tDitherTex);
+    m_tDitherTex = 0;
+  }
+  if (m_tCLUTTex)
+  {
+    glDeleteTextures(1, &m_tCLUTTex);
+    m_tCLUTTex = 0;
+  }
+  if (m_tOutRLUTTex)
+  {
+    glDeleteTextures(1, &m_tOutRLUTTex);
+    m_tOutRLUTTex = 0;
+  }
+  if (m_tOutGLUTTex)
+  {
+    glDeleteTextures(1, &m_tOutGLUTTex);
+    m_tOutGLUTTex = 0;
+  }
+  if (m_tOutBLUTTex)
+  {
+    glDeleteTextures(1, &m_tOutBLUTTex);
+    m_tOutBLUTTex = 0;
+  }
+}
+
+//////////////////////////////////////////////////////////////////////
+// Progressive3dLUTShader - 3dLUT with no deinterlacing
+// Use for weave deinterlacing / progressive
+//////////////////////////////////////////////////////////////////////
+
+Progressive3dLUTShader::Progressive3dLUTShader(bool rect, unsigned flags, ERenderFormat format, bool stretch)
+  : Base3dLUTGLSLShader(rect, flags, format, stretch)
+{
+  PixelShader()->LoadSource("lut_basic.glsl", m_defines);
+}
+
+
+#endif // HAVE_LIBLCMS2 && HAS_GL
 
 //////////////////////////////////////////////////////////////////////
 // YUV2RGBProgressiveShader - YUV2RGB with no deinterlacing

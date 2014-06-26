@@ -167,6 +167,83 @@ namespace Shaders {
   };
 #endif
 
+#if defined(HAVE_LIBLCMS2) && defined(HAS_GL) // no GLES2 support yet
+  class Base3dLUTGLSLShader
+    : public BaseYUV2RGBShader
+    , public CGLSLShaderProgram
+  {
+  public:
+    Base3dLUTGLSLShader(bool rect, unsigned flags, ERenderFormat format, bool stretch);
+   ~Base3dLUTGLSLShader() {}
+    virtual void SetField(int field) { m_field  = field; }
+    virtual void SetWidth(int w)     { m_width  = w; }
+    virtual void SetHeight(int h)    { m_height = h; }
+
+    virtual void SetBlack(float black)           { m_black    = black; }
+    virtual void SetContrast(float contrast)     { m_contrast = contrast; }
+    virtual void SetNonLinStretch(float stretch) { m_stretch = stretch; }
+  protected:
+    void OnCompiledAndLinked();
+    bool OnEnabled();
+    void OnDisabled();
+    void Free();
+    void CheckAndFreeTextures();
+
+    unsigned m_flags;
+    ERenderFormat m_format;
+    int   m_width;
+    int   m_height;
+    int   m_field;
+
+    float m_black;
+    float m_contrast;
+    float m_stretch;
+
+    string m_defines;
+
+    // textures
+    GLuint m_tCLUTTex;
+    GLuint m_tOutRLUTTex;
+    GLuint m_tOutGLUTTex;
+    GLuint m_tOutBLUTTex;
+    GLuint m_tDitherTex;
+
+    // shader attribute handles
+    GLint m_hYTex;
+    GLint m_hUTex;
+    GLint m_hVTex;
+    GLint m_hCLUT;
+    GLint m_hOutRLUT;
+    GLint m_hOutGLUT;
+    GLint m_hOutBLUT;
+    GLint m_hDither;
+    GLint m_hDitherQuant;
+    GLint m_hDitherSize;
+    GLint m_hStretch;
+    GLint m_hStep;
+  };
+
+  class Progressive3dLUTShader : public Base3dLUTGLSLShader
+  {
+  public:
+    Progressive3dLUTShader(bool rect=false, unsigned flags=0, ERenderFormat format=RENDER_FMT_NONE, bool stretch = false);
+  };
+
+#if 0 // not implemented yet
+  class Bob3dLUTShader : public Base3dLUTGLSLShader
+  {
+  public:
+    Bob3dLUTShader(bool rect=false, unsigned flags=0, ERenderFormat format=RENDER_FMT_NONE);
+    void OnCompiledAndLinked();
+    bool OnEnabled();
+
+    GLint m_hStepX;
+    GLint m_hStepY;
+    GLint m_hField;
+  };
+#endif // 0
+#endif // HAVE_LIBLCMS2 && HAS_GL
+
   class YUV2RGBProgressiveShader : public BaseYUV2RGBGLSLShader
   {
   public:

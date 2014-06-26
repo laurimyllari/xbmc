@@ -975,10 +975,15 @@ void CLinuxRendererGL::LoadShaders(int field)
       if (glCreateProgram && tryGlsl)
       {
         // create regular progressive scan shader
+#if defined(HAVE_LIBLCMS2) && defined(HAS_GL)
+        m_pYUVShader = new Progressive3dLUTShader(m_textureTarget==GL_TEXTURE_RECTANGLE_ARB, m_iFlags, m_format,
+                                                    m_nonLinStretch && m_renderQuality == RQ_SINGLEPASS);
+        CLog::Log(LOGNOTICE, "GL: Selecting Single Pass 3dLUT shader");
+#else
         m_pYUVShader = new YUV2RGBProgressiveShader(m_textureTarget==GL_TEXTURE_RECTANGLE_ARB, m_iFlags, m_format,
                                                     m_nonLinStretch && m_renderQuality == RQ_SINGLEPASS);
-
         CLog::Log(LOGNOTICE, "GL: Selecting Single Pass YUV 2 RGB shader");
+#endif
 
         if (m_pYUVShader && m_pYUVShader->CompileAndLink())
         {
