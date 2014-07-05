@@ -241,6 +241,17 @@ bool CWinSystemBase::UseLimitedColor()
 #endif
 }
 
+bool CWinSystemBase::Use3dLUT()
+{
+#if defined(HAS_GL) && defined(HAVE_LIBLCMS2)
+  // static CSettingBool* setting = (CSettingBool*)CSettings::Get().GetSetting("videoscreen.limitedrange");
+  // return setting->GetValue();
+  return true;
+#else
+  return false;
+#endif
+}
+
 std::string CWinSystemBase::GetClipboardText(void)
 {
   return "";
