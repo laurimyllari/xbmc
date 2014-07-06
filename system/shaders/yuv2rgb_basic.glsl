@@ -59,27 +59,19 @@ void main()
 {
 #if defined(XBMC_YV12) || defined(XBMC_NV12)
 
-  vec4 yuv, rgb;
+  vec4 yuv;
   yuv.rgba = vec4( texture2D(m_sampY, stretch(m_cordY)).r
                  , texture2D(m_sampU, stretch(m_cordU)).g
                  , texture2D(m_sampV, stretch(m_cordV)).a
                  , 1.0 );
 
-  rgb   = m_yuvmat * yuv;
-  rgb.a = gl_Color.a;
-  gl_FragColor = rgb;
-
 #elif defined(XBMC_VDPAU_NV12)
 
-  vec4 yuv, rgb;
+  vec4 yuv;
   yuv.rgba = vec4( texture2D(m_sampY, stretch(m_cordY)).r
                  , texture2D(m_sampU, stretch(m_cordU)).r
                  , texture2D(m_sampV, stretch(m_cordV)).g
                  , 1.0 );
-
-  rgb   = m_yuvmat * yuv;
-  rgb.a = gl_Color.a;
-  gl_FragColor = rgb;
 
 #elif defined(XBMC_YUY2) || defined(XBMC_UYVY)
 
@@ -116,10 +108,17 @@ void main()
   float outY    = mix(leftY, rightY, step(0.5, f.x));
 
   vec4  yuv     = vec4(outY, outUV, 1.0);
+#endif
+
   vec4  rgb     = m_yuvmat * yuv;
 
+#ifdef XBMC_EXPAND_TO_FULLRANGE
+  // 3dLUT uses limited range, expand to full range if requested
+  gl_FragColor   = clamp((rgb-(16.0/255.0)) * 255.0/219.0, 0, 1);
+  gl_FragColor.a = gl_Color.a;
+#else
   gl_FragColor   = rgb;
   gl_FragColor.a = gl_Color.a;
-
 #endif
+
 }

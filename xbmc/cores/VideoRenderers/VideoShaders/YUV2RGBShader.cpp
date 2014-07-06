@@ -111,8 +111,9 @@ void CalculateYUVMatrix(TransformMatrix &matrix
       coef.m[row][col] = conv[col][row];
   coef.identity = false;
 
-
-  if(g_Windowing.UseLimitedColor())
+  // Scale to limited range if so configured, or if 3dLUT is used use
+  // limited range internally and convert range later if necessary
+  if(g_Windowing.UseLimitedColor() || g_Windowing.Use3dLUT())
   {
     matrix *= TransformMatrix::CreateTranslation(+ 16.0f / 255
                                                , + 16.0f / 255
@@ -222,6 +223,17 @@ BaseYUV2RGBGLSLShader::BaseYUV2RGBGLSLShader(bool rect, unsigned flags, ERenderF
     m_defines += "#define XBMC_VDPAU_NV12\n";
   else
     CLog::Log(LOGERROR, "GL: BaseYUV2RGBGLSLShader - unsupported format %d", m_format);
+
+  if(g_Windowing.Use3dLUT())
+  {
+    CLog::Log(LOGNOTICE, "YUV2RGB: Configuring shader for 3dLUT");
+    m_defines += "#define XBMC_3DLUT\n";
+    if (!g_Windowing.UseLimitedColor())
+    {
+      CLog::Log(LOGNOTICE, "YUV2RGB: Configuring shader for full range output");
+      m_defines += "#define XBMC_EXPAND_TO_FULLRANGE\n";
+    }
+  }
 
   VertexShader()->LoadSource("yuv2rgb_vertex.glsl", m_defines);
 #elif HAS_GLES == 2
