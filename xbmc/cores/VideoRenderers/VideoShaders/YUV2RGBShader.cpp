@@ -187,6 +187,12 @@ BaseYUV2RGBGLSLShader::BaseYUV2RGBGLSLShader(bool rect, unsigned flags, ERenderF
 
   // textures
   m_tDitherTex  = 0;
+#if USE_3DLUT
+  m_tCLUTTex    = 0;
+  m_tOutRLUTTex    = 0;
+  m_tOutGLUTTex    = 0;
+  m_tOutBLUTTex    = 0;
+#endif // USE_3DLUT
 
   // shader attribute handles
   m_hYTex    = -1;
@@ -197,6 +203,12 @@ BaseYUV2RGBGLSLShader::BaseYUV2RGBGLSLShader(bool rect, unsigned flags, ERenderF
   m_hDither      = -1;
   m_hDitherQuant = -1;
   m_hDitherSize  = -1;
+#if USE_3DLUT
+  m_hCLUT        = -1;
+  m_hOutRLUT     = -1;
+  m_hOutGLUT     = -1;
+  m_hOutBLUT     = -1;
+#endif // USE_3DLUT
 
 #ifdef HAS_GL
   if(rect)
@@ -233,7 +245,7 @@ BaseYUV2RGBGLSLShader::BaseYUV2RGBGLSLShader(bool rect, unsigned flags, ERenderF
   if(g_Windowing.Use3dLUT())
   {
     CLog::Log(LOGNOTICE, "YUV2RGB: Configuring shader for 3dLUT");
-    m_defines += "#define XBMC_3DLUT\n";
+    m_defines += "#define XBMC_USE_3DLUT\n";
     if (!g_Windowing.UseLimitedColor())
     {
       CLog::Log(LOGNOTICE, "YUV2RGB: Configuring shader for full range output");
@@ -265,6 +277,11 @@ BaseYUV2RGBGLSLShader::BaseYUV2RGBGLSLShader(bool rect, unsigned flags, ERenderF
 
 void BaseYUV2RGBGLSLShader::OnCompiledAndLinked()
 {
+#if USE_3DLUT
+  float *CLUT, *outluts;
+  int CLUTsize, outlutsize;
+#endif // USE_3DLUT
+
   CheckAndFreeTextures();
 
 #if HAS_GLES == 2
@@ -285,6 +302,12 @@ void BaseYUV2RGBGLSLShader::OnCompiledAndLinked()
   m_hDither      = glGetUniformLocation(ProgramHandle(), "m_dither");
   m_hDitherQuant = glGetUniformLocation(ProgramHandle(), "m_ditherquant");
   m_hDitherSize  = glGetUniformLocation(ProgramHandle(), "m_dithersize");
+#if USE_3DLUT
+  m_hCLUT        = glGetUniformLocation(ProgramHandle(), "m_CLUT");
+  m_hOutRLUT     = glGetUniformLocation(ProgramHandle(), "m_OutLUTR");
+  m_hOutGLUT     = glGetUniformLocation(ProgramHandle(), "m_OutLUTG");
+  m_hOutBLUT     = glGetUniformLocation(ProgramHandle(), "m_OutLUTB");
+#endif // USE_3DLUT
   VerifyGLState();
 
   // set up dither texture
@@ -306,178 +329,7 @@ void BaseYUV2RGBGLSLShader::OnCompiledAndLinked()
   glActiveTexture(GL_TEXTURE0);
   VerifyGLState();
 
-}
-
-bool BaseYUV2RGBGLSLShader::OnEnabled()
-{
-  // set shader attributes once enabled
-  glUniform1i(m_hYTex, 0);
-  glUniform1i(m_hUTex, 1);
-  glUniform1i(m_hVTex, 2);
-  glUniform1f(m_hStretch, m_stretch);
-  glUniform2f(m_hStep, 1.0 / m_width, 1.0 / m_height);
-
-  GLfloat matrix[4][4];
-  CalculateYUVMatrixGL(matrix, m_flags, m_format, m_black, m_contrast);
-
-  glUniformMatrix4fv(m_hMatrix, 1, GL_FALSE, (GLfloat*)matrix);
-#if HAS_GLES == 2
-  glUniformMatrix4fv(m_hProj,  1, GL_FALSE, m_proj);
-  glUniformMatrix4fv(m_hModel, 1, GL_FALSE, m_model);
-  glUniform1f(m_hAlpha, m_alpha);
-#endif
-  VerifyGLState();
-
-  // set texture units
-
-  glUniform1i(m_hDither, 3);
-  VerifyGLState();
-
-  // bind textures
-  glActiveTexture(GL_TEXTURE3);
-  glBindTexture(GL_TEXTURE_2D, m_tDitherTex);
-  glActiveTexture(GL_TEXTURE0);
-  VerifyGLState();
-
-  // dither settings
-  glUniform1f(m_hDitherQuant, 255.0); // (1<<depth)-1
-  VerifyGLState();
-  glUniform2f(m_hDitherSize, dither_size, dither_size);
-  VerifyGLState();
-
-  return true;
-}
-
-void BaseYUV2RGBGLSLShader::OnDisabled()
-{
-  glActiveTexture(GL_TEXTURE3);
-  glDisable(GL_TEXTURE_2D);
-  glActiveTexture(GL_TEXTURE0);
-  VerifyGLState();
-}
-
-void BaseYUV2RGBGLSLShader::Free()
-{
-  CheckAndFreeTextures();
-}
-
-void BaseYUV2RGBGLSLShader::CheckAndFreeTextures()
-{
-  if (m_tDitherTex)
-  {
-    glDeleteTextures(1, &m_tDitherTex);
-    m_tDitherTex = 0;
-  }
-}
-
-//////////////////////////////////////////////////////////////////////
-// BaseYUV2RGBGLSLShader - base class for GLSL YUV2RGB shaders
-//////////////////////////////////////////////////////////////////////
-#if HAS_GLES != 2	// No ARB Shader when using GLES2.0
-BaseYUV2RGBARBShader::BaseYUV2RGBARBShader(unsigned flags, ERenderFormat format)
-{
-  m_width         = 1;
-  m_height        = 1;
-  m_field         = 0;
-  m_flags         = flags;
-  m_format        = format;
-
-  // shader attribute handles
-  m_hYTex  = -1;
-  m_hUTex  = -1;
-  m_hVTex  = -1;
-}
-#endif
-
-//////////////////////////////////////////////////////////////////////
-// Base3dLUTGLSLShader - base class for GLSL 3dLUT shaders
-//////////////////////////////////////////////////////////////////////
-
-#if defined(HAVE_LIBLCMS2) && defined(HAS_GL) // no GLES2 support yet
-Base3dLUTGLSLShader::Base3dLUTGLSLShader(bool rect, unsigned flags, ERenderFormat format, bool stretch)
-{
-  m_width      = 1;
-  m_height     = 1;
-  m_field      = 0;
-  m_flags      = flags;
-  m_format     = format;
-
-  m_black      = 0.0f;
-  m_contrast   = 1.0f;
-
-  m_stretch = 0.0f;
-
-  // textures
-  m_tCLUTTex    = 0;
-  m_tOutRLUTTex    = 0;
-  m_tOutGLUTTex    = 0;
-  m_tOutBLUTTex    = 0;
-
-  // shader attribute handles
-  m_hYTex        = -1;
-  m_hUTex        = -1;
-  m_hVTex        = -1;
-  m_hCLUT        = -1;
-  m_hOutRLUT     = -1;
-  m_hOutGLUT     = -1;
-  m_hOutBLUT     = -1;
-  m_hStretch     = -1;
-  m_hStep        = -1;
-
-  if(rect)
-    m_defines += "#define XBMC_texture_rectangle 1\n";
-  else
-    m_defines += "#define XBMC_texture_rectangle 0\n";
-
-  if(g_advancedSettings.m_GLRectangleHack)
-    m_defines += "#define XBMC_texture_rectangle_hack 1\n";
-  else
-    m_defines += "#define XBMC_texture_rectangle_hack 0\n";
-
-  //don't compile in stretch support when it's not needed
-  if (stretch)
-    m_defines += "#define XBMC_STRETCH 1\n";
-  else
-    m_defines += "#define XBMC_STRETCH 0\n";
-
-  if (m_format == RENDER_FMT_YUV420P ||
-      m_format == RENDER_FMT_YUV420P10 ||
-      m_format == RENDER_FMT_YUV420P16)
-    m_defines += "#define XBMC_YV12\n";
-  else if (m_format == RENDER_FMT_NV12)
-    m_defines += "#define XBMC_NV12\n";
-  else if (m_format == RENDER_FMT_YUYV422)
-    m_defines += "#define XBMC_YUY2\n";
-  else if (m_format == RENDER_FMT_UYVY422)
-    m_defines += "#define XBMC_UYVY\n";
-  else if (RENDER_FMT_VDPAU_420)
-    m_defines += "#define XBMC_VDPAU_NV12\n";
-  else
-    CLog::Log(LOGERROR, "GL: Base3dLUTGLSLShader - unsupported format %d", m_format);
-
-  VertexShader()->LoadSource("yuv2rgb_vertex.glsl", m_defines);
-
-  CLog::Log(LOGDEBUG, "GL: Base3dLUTGLSLShader: defines:\n%s", m_defines.c_str());
-}
-
-void Base3dLUTGLSLShader::OnCompiledAndLinked()
-{
-  float *CLUT, *outluts;
-  int CLUTsize, outlutsize;
-
-  CheckAndFreeTextures();
-
-  m_hYTex        = glGetUniformLocation(ProgramHandle(), "m_sampY");
-  m_hUTex        = glGetUniformLocation(ProgramHandle(), "m_sampU");
-  m_hVTex        = glGetUniformLocation(ProgramHandle(), "m_sampV");
-  m_hCLUT        = glGetUniformLocation(ProgramHandle(), "m_CLUT");
-  m_hOutRLUT     = glGetUniformLocation(ProgramHandle(), "m_OutLUTR");
-  m_hOutGLUT     = glGetUniformLocation(ProgramHandle(), "m_OutLUTG");
-  m_hOutBLUT     = glGetUniformLocation(ProgramHandle(), "m_OutLUTB");
-  m_hStretch     = glGetUniformLocation(ProgramHandle(), "m_stretch");
-  m_hStep        = glGetUniformLocation(ProgramHandle(), "m_step");
-  VerifyGLState();
-
+#if USE_3DLUT
   // load LUTs
   if ( loadLUT(m_flags, &CLUT, &CLUTsize, &outluts, &outlutsize) )
   {
@@ -563,10 +415,10 @@ void Base3dLUTGLSLShader::OnCompiledAndLinked()
 
   free(CLUT);
   free(outluts);
-
+#endif // USE_3DLUT
 }
 
-bool Base3dLUTGLSLShader::OnEnabled()
+bool BaseYUV2RGBGLSLShader::OnEnabled()
 {
   // set shader attributes once enabled
   glUniform1i(m_hYTex, 0);
@@ -575,14 +427,32 @@ bool Base3dLUTGLSLShader::OnEnabled()
   glUniform1f(m_hStretch, m_stretch);
   glUniform2f(m_hStep, 1.0 / m_width, 1.0 / m_height);
 
+  GLfloat matrix[4][4];
+  CalculateYUVMatrixGL(matrix, m_flags, m_format, m_black, m_contrast);
+
+  glUniformMatrix4fv(m_hMatrix, 1, GL_FALSE, (GLfloat*)matrix);
+#if HAS_GLES == 2
+  glUniformMatrix4fv(m_hProj,  1, GL_FALSE, m_proj);
+  glUniformMatrix4fv(m_hModel, 1, GL_FALSE, m_model);
+  glUniform1f(m_hAlpha, m_alpha);
+#endif
+  VerifyGLState();
+
   // set texture units
+  glUniform1i(m_hDither, 3);
+#if USE_3DLUT
   glUniform1i(m_hCLUT, 4);
   glUniform1i(m_hOutRLUT, 5);
   glUniform1i(m_hOutGLUT, 6);
   glUniform1i(m_hOutBLUT, 7);
+#endif // USE_3DLUT
   VerifyGLState();
 
   // bind textures
+  glActiveTexture(GL_TEXTURE3);
+  glBindTexture(GL_TEXTURE_2D, m_tDitherTex);
+  glActiveTexture(GL_TEXTURE0);
+#if USE_3DLUT
   glActiveTexture(GL_TEXTURE4);
   glBindTexture(GL_TEXTURE_3D, m_tCLUTTex);
   glActiveTexture(GL_TEXTURE5);
@@ -592,13 +462,23 @@ bool Base3dLUTGLSLShader::OnEnabled()
   glActiveTexture(GL_TEXTURE7);
   glBindTexture(GL_TEXTURE_1D, m_tOutBLUTTex);
   glActiveTexture(GL_TEXTURE0);
+#endif // USE_3DLUT
+  VerifyGLState();
+
+  // dither settings
+  glUniform1f(m_hDitherQuant, 255.0); // (1<<depth)-1
+  VerifyGLState();
+  glUniform2f(m_hDitherSize, dither_size, dither_size);
   VerifyGLState();
 
   return true;
 }
 
-void Base3dLUTGLSLShader::OnDisabled()
+void BaseYUV2RGBGLSLShader::OnDisabled()
 {
+  glActiveTexture(GL_TEXTURE3);
+  glDisable(GL_TEXTURE_2D);
+#if USE_3DLUT
   glActiveTexture(GL_TEXTURE4);
   glDisable(GL_TEXTURE_3D);
   glActiveTexture(GL_TEXTURE5);
@@ -607,17 +487,24 @@ void Base3dLUTGLSLShader::OnDisabled()
   glDisable(GL_TEXTURE_1D);
   glActiveTexture(GL_TEXTURE7);
   glDisable(GL_TEXTURE_1D);
+#endif // USE_3DLUT
   glActiveTexture(GL_TEXTURE0);
   VerifyGLState();
 }
 
-void Base3dLUTGLSLShader::Free()
+void BaseYUV2RGBGLSLShader::Free()
 {
   CheckAndFreeTextures();
 }
 
-void Base3dLUTGLSLShader::CheckAndFreeTextures()
+void BaseYUV2RGBGLSLShader::CheckAndFreeTextures()
 {
+  if (m_tDitherTex)
+  {
+    glDeleteTextures(1, &m_tDitherTex);
+    m_tDitherTex = 0;
+  }
+#if USE_3DLUT
   if (m_tCLUTTex)
   {
     glDeleteTextures(1, &m_tCLUTTex);
@@ -638,6 +525,136 @@ void Base3dLUTGLSLShader::CheckAndFreeTextures()
     glDeleteTextures(1, &m_tOutBLUTTex);
     m_tOutBLUTTex = 0;
   }
+#endif // USE_3DLUT
+}
+
+//////////////////////////////////////////////////////////////////////
+// BaseYUV2RGBGLSLShader - base class for GLSL YUV2RGB shaders
+//////////////////////////////////////////////////////////////////////
+#if HAS_GLES != 2	// No ARB Shader when using GLES2.0
+BaseYUV2RGBARBShader::BaseYUV2RGBARBShader(unsigned flags, ERenderFormat format)
+{
+  m_width         = 1;
+  m_height        = 1;
+  m_field         = 0;
+  m_flags         = flags;
+  m_format        = format;
+
+  // shader attribute handles
+  m_hYTex  = -1;
+  m_hUTex  = -1;
+  m_hVTex  = -1;
+}
+#endif
+
+//////////////////////////////////////////////////////////////////////
+// Base3dLUTGLSLShader - base class for GLSL 3dLUT shaders
+//////////////////////////////////////////////////////////////////////
+
+#if defined(HAVE_LIBLCMS2) && defined(HAS_GL) // no GLES2 support yet
+Base3dLUTGLSLShader::Base3dLUTGLSLShader(bool rect, unsigned flags, ERenderFormat format, bool stretch)
+{
+  m_width      = 1;
+  m_height     = 1;
+  m_field      = 0;
+  m_flags      = flags;
+  m_format     = format;
+
+  m_black      = 0.0f;
+  m_contrast   = 1.0f;
+
+  m_stretch = 0.0f;
+
+  // textures
+
+  // shader attribute handles
+  m_hYTex        = -1;
+  m_hUTex        = -1;
+  m_hVTex        = -1;
+  m_hStretch     = -1;
+  m_hStep        = -1;
+
+  if(rect)
+    m_defines += "#define XBMC_texture_rectangle 1\n";
+  else
+    m_defines += "#define XBMC_texture_rectangle 0\n";
+
+  if(g_advancedSettings.m_GLRectangleHack)
+    m_defines += "#define XBMC_texture_rectangle_hack 1\n";
+  else
+    m_defines += "#define XBMC_texture_rectangle_hack 0\n";
+
+  //don't compile in stretch support when it's not needed
+  if (stretch)
+    m_defines += "#define XBMC_STRETCH 1\n";
+  else
+    m_defines += "#define XBMC_STRETCH 0\n";
+
+  if (m_format == RENDER_FMT_YUV420P ||
+      m_format == RENDER_FMT_YUV420P10 ||
+      m_format == RENDER_FMT_YUV420P16)
+    m_defines += "#define XBMC_YV12\n";
+  else if (m_format == RENDER_FMT_NV12)
+    m_defines += "#define XBMC_NV12\n";
+  else if (m_format == RENDER_FMT_YUYV422)
+    m_defines += "#define XBMC_YUY2\n";
+  else if (m_format == RENDER_FMT_UYVY422)
+    m_defines += "#define XBMC_UYVY\n";
+  else if (RENDER_FMT_VDPAU_420)
+    m_defines += "#define XBMC_VDPAU_NV12\n";
+  else
+    CLog::Log(LOGERROR, "GL: Base3dLUTGLSLShader - unsupported format %d", m_format);
+
+  VertexShader()->LoadSource("yuv2rgb_vertex.glsl", m_defines);
+
+  CLog::Log(LOGDEBUG, "GL: Base3dLUTGLSLShader: defines:\n%s", m_defines.c_str());
+}
+
+void Base3dLUTGLSLShader::OnCompiledAndLinked()
+{
+  CheckAndFreeTextures();
+
+  m_hYTex        = glGetUniformLocation(ProgramHandle(), "m_sampY");
+  m_hUTex        = glGetUniformLocation(ProgramHandle(), "m_sampU");
+  m_hVTex        = glGetUniformLocation(ProgramHandle(), "m_sampV");
+  m_hStretch     = glGetUniformLocation(ProgramHandle(), "m_stretch");
+  m_hStep        = glGetUniformLocation(ProgramHandle(), "m_step");
+  VerifyGLState();
+
+
+}
+
+bool Base3dLUTGLSLShader::OnEnabled()
+{
+  // set shader attributes once enabled
+  glUniform1i(m_hYTex, 0);
+  glUniform1i(m_hUTex, 1);
+  glUniform1i(m_hVTex, 2);
+  glUniform1f(m_hStretch, m_stretch);
+  glUniform2f(m_hStep, 1.0 / m_width, 1.0 / m_height);
+
+  // set texture units
+  VerifyGLState();
+
+  // bind textures
+  VerifyGLState();
+
+  return true;
+}
+
+void Base3dLUTGLSLShader::OnDisabled()
+{
+  glActiveTexture(GL_TEXTURE0);
+  VerifyGLState();
+}
+
+void Base3dLUTGLSLShader::Free()
+{
+  CheckAndFreeTextures();
+}
+
+void Base3dLUTGLSLShader::CheckAndFreeTextures()
+{
 }
 
 //////////////////////////////////////////////////////////////////////

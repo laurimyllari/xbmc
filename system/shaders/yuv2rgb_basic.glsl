@@ -37,6 +37,13 @@ uniform mat4      m_yuvmat;
 
 uniform float     m_stretch;
 
+#ifdef XBMC_USE_3DLUT
+uniform sampler3D m_CLUT;
+uniform sampler1D m_OutLUTR;
+uniform sampler1D m_OutLUTG;
+uniform sampler1D m_OutLUTB;
+#endif // XBMC_USE_3DLUT
+
 uniform sampler2D m_dither;
 uniform float     m_ditherquant;
 uniform vec2      m_dithersize;
@@ -115,6 +122,13 @@ void main()
 #endif
 
   vec4  rgb     = m_yuvmat * yuv;
+
+#ifdef XBMC_USE_3DLUT
+  rgb             = texture3D(m_CLUT, rgb.bgr);
+  rgb.r           = texture1D(m_OutLUTR, rgb.r).r;
+  rgb.g           = texture1D(m_OutLUTG, rgb.g).r;
+  rgb.b           = texture1D(m_OutLUTB, rgb.b).r;
+#endif // XBMC_USE_3DLUT
 
 #ifdef XBMC_EXPAND_TO_FULLRANGE
   // 3dLUT uses limited range, expand to full range if requested

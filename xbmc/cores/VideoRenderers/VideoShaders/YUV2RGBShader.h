@@ -32,6 +32,10 @@ void CalculateYUVMatrix(TransformMatrix &matrix
 
 #if defined(HAS_GL) || HAS_GLES == 2
 
+#if defined(HAVE_LIBLCMS2)
+#define USE_3DLUT 1
+#endif
+
 #ifndef __GNUC__
 #pragma warning( push )
 #pragma warning( disable : 4250 )
@@ -110,6 +114,12 @@ namespace Shaders {
 
     // textures
     GLuint m_tDitherTex;
+#if USE_3DLUT
+    GLuint m_tCLUTTex;
+    GLuint m_tOutRLUTTex;
+    GLuint m_tOutGLUTTex;
+    GLuint m_tOutBLUTTex;
+#endif
 
     // shader attribute handles
     GLint m_hYTex;
@@ -121,6 +131,12 @@ namespace Shaders {
     GLint m_hDither;
     GLint m_hDitherQuant;
     GLint m_hDitherSize;
+#if USE_3DLUT
+    GLint m_hCLUT;
+    GLint m_hOutRLUT;
+    GLint m_hOutGLUT;
+    GLint m_hOutBLUT;
+#endif
 #if HAS_GLES == 2
     GLint m_hVertex;
     GLint m_hYcoord;
@@ -220,10 +236,6 @@ namespace Shaders {
     GLint m_hYTex;
     GLint m_hUTex;
     GLint m_hVTex;
-    GLint m_hCLUT;
-    GLint m_hOutRLUT;
-    GLint m_hOutGLUT;
-    GLint m_hOutBLUT;
     GLint m_hStretch;
     GLint m_hStep;
   };
