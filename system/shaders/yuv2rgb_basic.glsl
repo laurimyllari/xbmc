@@ -37,6 +37,10 @@ uniform mat4      m_yuvmat;
 
 uniform float     m_stretch;
 
+uniform sampler2D m_dither;
+uniform float     m_ditherquant;
+uniform vec2      m_dithersize;
+
 vec2 stretch(vec2 pos)
 {
 #if (XBMC_STRETCH)
@@ -114,11 +118,13 @@ void main()
 
 #ifdef XBMC_EXPAND_TO_FULLRANGE
   // 3dLUT uses limited range, expand to full range if requested
-  gl_FragColor   = clamp((rgb-(16.0/255.0)) * 255.0/219.0, 0, 1);
-  gl_FragColor.a = gl_Color.a;
-#else
-  gl_FragColor   = rgb;
-  gl_FragColor.a = gl_Color.a;
+  rgb             = clamp((rgb-(16.0/255.0)) * 255.0/219.0, 0, 1);
 #endif
+
+  vec2 ditherpos  = gl_FragCoord.xy / m_dithersize;
+  float ditherval = texture2D(m_dither, ditherpos).r;
+  ditherval       = ditherval * 8.0;
+  gl_FragColor    = floor(rgb * m_ditherquant + ditherval) / m_ditherquant;
+  gl_FragColor.a  = gl_Color.a;
 
 }

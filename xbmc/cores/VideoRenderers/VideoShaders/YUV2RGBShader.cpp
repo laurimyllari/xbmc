@@ -185,12 +185,18 @@ BaseYUV2RGBGLSLShader::BaseYUV2RGBGLSLShader(bool rect, unsigned flags, ERenderF
 
   m_stretch = 0.0f;
 
+  // textures
+  m_tDitherTex  = 0;
+
   // shader attribute handles
   m_hYTex    = -1;
   m_hUTex    = -1;
   m_hVTex    = -1;
   m_hStretch = -1;
   m_hStep    = -1;
+  m_hDither      = -1;
+  m_hDitherQuant = -1;
+  m_hDitherSize  = -1;
 
 #ifdef HAS_GL
   if(rect)
@@ -259,6 +265,8 @@ BaseYUV2RGBGLSLShader::BaseYUV2RGBGLSLShader(bool rect, unsigned flags, ERenderF
 
 void BaseYUV2RGBGLSLShader::OnCompiledAndLinked()
 {
+  CheckAndFreeTextures();
+
 #if HAS_GLES == 2
   m_hVertex = glGetAttribLocation(ProgramHandle(),  "m_attrpos");
   m_hYcoord = glGetAttribLocation(ProgramHandle(),  "m_attrcordY");
@@ -274,7 +282,30 @@ void BaseYUV2RGBGLSLShader::OnCompiledAndLinked()
   m_hMatrix  = glGetUniformLocation(ProgramHandle(), "m_yuvmat");
   m_hStretch = glGetUniformLocation(ProgramHandle(), "m_stretch");
   m_hStep    = glGetUniformLocation(ProgramHandle(), "m_step");
+  m_hDither      = glGetUniformLocation(ProgramHandle(), "m_dither");
+  m_hDitherQuant = glGetUniformLocation(ProgramHandle(), "m_ditherquant");
+  m_hDitherSize  = glGetUniformLocation(ProgramHandle(), "m_dithersize");
   VerifyGLState();
+
+  // set up dither texture
+  glGenTextures(1, &m_tDitherTex);
+  glActiveTexture(GL_TEXTURE3);
+  if ( m_tDitherTex <= 0 )
+  {
+    CLog::Log(LOGERROR, "Error creating dither texture");
+    return;
+  }
+  glBindTexture(GL_TEXTURE_2D, m_tDitherTex);
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+  glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, dither_size, dither_size, 0, GL_RED, GL_SHORT, dither_matrix);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  glActiveTexture(GL_TEXTURE0);
+  VerifyGLState();
+
 }
 
 bool BaseYUV2RGBGLSLShader::OnEnabled()
@@ -296,7 +327,47 @@ bool BaseYUV2RGBGLSLShader::OnEnabled()
   glUniform1f(m_hAlpha, m_alpha);
 #endif
   VerifyGLState();
+
+  // set texture units
+
+  glUniform1i(m_hDither, 3);
+  VerifyGLState();
+
+  // bind textures
+  glActiveTexture(GL_TEXTURE3);
+  glBindTexture(GL_TEXTURE_2D, m_tDitherTex);
+  glActiveTexture(GL_TEXTURE0);
+  VerifyGLState();
+
+  // dither settings
+  glUniform1f(m_hDitherQuant, 255.0); // (1<<depth)-1
+  VerifyGLState();
+  glUniform2f(m_hDitherSize, dither_size, dither_size);
+  VerifyGLState();
+
   return true;
+}
+
+void BaseYUV2RGBGLSLShader::OnDisabled()
+{
+  glActiveTexture(GL_TEXTURE3);
+  glDisable(GL_TEXTURE_2D);
+  glActiveTexture(GL_TEXTURE0);
+  VerifyGLState();
+}
+
+void BaseYUV2RGBGLSLShader::Free()
+{
+  CheckAndFreeTextures();
+}
+
+void BaseYUV2RGBGLSLShader::CheckAndFreeTextures()
+{
+  if (m_tDitherTex)
+  {
+    glDeleteTextures(1, &m_tDitherTex);
+    m_tDitherTex = 0;
+  }
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -341,7 +412,6 @@ Base3dLUTGLSLShader::Base3dLUTGLSLShader(bool rect, unsigned flags, ERenderForma
   m_tOutRLUTTex    = 0;
   m_tOutGLUTTex    = 0;
   m_tOutBLUTTex    = 0;
-  m_tDitherTex  = 0;
 
   // shader attribute handles
   m_hYTex        = -1;
@@ -351,9 +421,6 @@ Base3dLUTGLSLShader::Base3dLUTGLSLShader(bool rect, unsigned flags, ERenderForma
   m_hOutRLUT     = -1;
   m_hOutGLUT     = -1;
   m_hOutBLUT     = -1;
-  m_hDither      = -1;
-  m_hDitherQuant = -1;
-  m_hDitherSize  = -1;
   m_hStretch     = -1;
   m_hStep        = -1;
 
@@ -407,9 +474,6 @@ void Base3dLUTGLSLShader::OnCompiledAndLinked()
   m_hOutRLUT     = glGetUniformLocation(ProgramHandle(), "m_OutLUTR");
   m_hOutGLUT     = glGetUniformLocation(ProgramHandle(), "m_OutLUTG");
   m_hOutBLUT     = glGetUniformLocation(ProgramHandle(), "m_OutLUTB");
-  m_hDither      = glGetUniformLocation(ProgramHandle(), "m_dither");
-  m_hDitherQuant = glGetUniformLocation(ProgramHandle(), "m_ditherquant");
-  m_hDitherSize  = glGetUniformLocation(ProgramHandle(), "m_dithersize");
   m_hStretch     = glGetUniformLocation(ProgramHandle(), "m_stretch");
   m_hStep        = glGetUniformLocation(ProgramHandle(), "m_step");
   VerifyGLState();
@@ -420,24 +484,6 @@ void Base3dLUTGLSLShader::OnCompiledAndLinked()
     CLog::Log(LOGERROR, "Error loading the LUT");
     return;
   }
-
-  glGenTextures(1, &m_tDitherTex);
-  glActiveTexture(GL_TEXTURE3);
-  if ( m_tDitherTex <= 0 )
-  {
-    CLog::Log(LOGERROR, "Error creating dither texture");
-    return;
-  }
-  glBindTexture(GL_TEXTURE_2D, m_tDitherTex);
-  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-  glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, dither_size, dither_size, 0, GL_RED, GL_SHORT, dither_matrix);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-  glActiveTexture(GL_TEXTURE0);
-  VerifyGLState();
 
   glGenTextures(1, &m_tCLUTTex);
   glActiveTexture(GL_TEXTURE4);
@@ -513,9 +559,6 @@ void Base3dLUTGLSLShader::OnCompiledAndLinked()
   m_hOutRLUT = glGetUniformLocation(ProgramHandle(), "m_OutLUTR");
   m_hOutGLUT = glGetUniformLocation(ProgramHandle(), "m_OutLUTG");
   m_hOutBLUT = glGetUniformLocation(ProgramHandle(), "m_OutLUTB");
-  m_hDither = glGetUniformLocation(ProgramHandle(), "m_dither");
-  m_hDitherQuant = glGetUniformLocation(ProgramHandle(), "m_ditherquant");
-  m_hDitherSize = glGetUniformLocation(ProgramHandle(), "m_dithersize");
   VerifyGLState();
 
   free(CLUT);
@@ -533,7 +576,6 @@ bool Base3dLUTGLSLShader::OnEnabled()
   glUniform2f(m_hStep, 1.0 / m_width, 1.0 / m_height);
 
   // set texture units
-  glUniform1i(m_hDither, 3);
   glUniform1i(m_hCLUT, 4);
   glUniform1i(m_hOutRLUT, 5);
   glUniform1i(m_hOutGLUT, 6);
@@ -541,8 +583,6 @@ bool Base3dLUTGLSLShader::OnEnabled()
   VerifyGLState();
 
   // bind textures
-  glActiveTexture(GL_TEXTURE3);
-  glBindTexture(GL_TEXTURE_2D, m_tDitherTex);
   glActiveTexture(GL_TEXTURE4);
   glBindTexture(GL_TEXTURE_3D, m_tCLUTTex);
   glActiveTexture(GL_TEXTURE5);
@@ -554,19 +594,11 @@ bool Base3dLUTGLSLShader::OnEnabled()
   glActiveTexture(GL_TEXTURE0);
   VerifyGLState();
 
-  // dither settings
-  glUniform1f(m_hDitherQuant, 255.0); // (1<<depth)-1
-  VerifyGLState();
-  glUniform2f(m_hDitherSize, dither_size, dither_size);
-  VerifyGLState();
-
   return true;
 }
 
 void Base3dLUTGLSLShader::OnDisabled()
 {
-  glActiveTexture(GL_TEXTURE3);
-  glDisable(GL_TEXTURE_2D);
   glActiveTexture(GL_TEXTURE4);
   glDisable(GL_TEXTURE_3D);
   glActiveTexture(GL_TEXTURE5);
@@ -586,11 +618,6 @@ void Base3dLUTGLSLShader::Free()
 
 void Base3dLUTGLSLShader::CheckAndFreeTextures()
 {
-  if (m_tDitherTex)
-  {
-    glDeleteTextures(1, &m_tDitherTex);
-    m_tDitherTex = 0;
-  }
   if (m_tCLUTTex)
   {
     glDeleteTextures(1, &m_tCLUTTex);

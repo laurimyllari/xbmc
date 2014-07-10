@@ -92,6 +92,9 @@ namespace Shaders {
   protected:
     void OnCompiledAndLinked();
     bool OnEnabled();
+    void OnDisabled();
+    void Free();
+    void CheckAndFreeTextures();
 
     unsigned m_flags;
     ERenderFormat m_format;
@@ -105,6 +108,9 @@ namespace Shaders {
 
     string m_defines;
 
+    // textures
+    GLuint m_tDitherTex;
+
     // shader attribute handles
     GLint m_hYTex;
     GLint m_hUTex;
@@ -112,6 +118,9 @@ namespace Shaders {
     GLint m_hMatrix;
     GLint m_hStretch;
     GLint m_hStep;
+    GLint m_hDither;
+    GLint m_hDitherQuant;
+    GLint m_hDitherSize;
 #if HAS_GLES == 2
     GLint m_hVertex;
     GLint m_hYcoord;
@@ -206,7 +215,6 @@ namespace Shaders {
     GLuint m_tOutRLUTTex;
     GLuint m_tOutGLUTTex;
     GLuint m_tOutBLUTTex;
-    GLuint m_tDitherTex;
 
     // shader attribute handles
     GLint m_hYTex;
@@ -216,9 +224,6 @@ namespace Shaders {
     GLint m_hOutRLUT;
     GLint m_hOutGLUT;
     GLint m_hOutBLUT;
-    GLint m_hDither;
-    GLint m_hDitherQuant;
-    GLint m_hDitherSize;
     GLint m_hStretch;
     GLint m_hStep;
   };
