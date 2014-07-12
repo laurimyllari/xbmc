@@ -358,6 +358,8 @@ void BaseYUV2RGBGLSLShader::OnCompiledAndLinked()
   glActiveTexture(GL_TEXTURE0);
   VerifyGLState();
 
+#if 0
+// disable output curves
   glGenTextures(1, &m_tOutRLUTTex);
   glActiveTexture(GL_TEXTURE5);
   if ( m_tOutRLUTTex <= 0 )
@@ -408,6 +410,7 @@ void BaseYUV2RGBGLSLShader::OnCompiledAndLinked()
   glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
   glActiveTexture(GL_TEXTURE0);
   VerifyGLState();
+#endif
 
   m_hCLUT = glGetUniformLocation(ProgramHandle(), "m_CLUT");
   m_hOutRLUT = glGetUniformLocation(ProgramHandle(), "m_OutLUTR");
@@ -416,7 +419,8 @@ void BaseYUV2RGBGLSLShader::OnCompiledAndLinked()
   VerifyGLState();
 
   free(CLUT);
-  free(outluts);
+  if (outluts) free(outluts);
+
 #endif // USE_3DLUT
 }
 
@@ -457,12 +461,14 @@ bool BaseYUV2RGBGLSLShader::OnEnabled()
 #if USE_3DLUT
   glActiveTexture(GL_TEXTURE4);
   glBindTexture(GL_TEXTURE_3D, m_tCLUTTex);
+#if 0
   glActiveTexture(GL_TEXTURE5);
   glBindTexture(GL_TEXTURE_1D, m_tOutRLUTTex);
   glActiveTexture(GL_TEXTURE6);
   glBindTexture(GL_TEXTURE_1D, m_tOutGLUTTex);
   glActiveTexture(GL_TEXTURE7);
   glBindTexture(GL_TEXTURE_1D, m_tOutBLUTTex);
+#endif
   glActiveTexture(GL_TEXTURE0);
 #endif // USE_3DLUT
   VerifyGLState();
@@ -483,12 +489,14 @@ void BaseYUV2RGBGLSLShader::OnDisabled()
 #if USE_3DLUT
   glActiveTexture(GL_TEXTURE4);
   glDisable(GL_TEXTURE_3D);
+#if 0
   glActiveTexture(GL_TEXTURE5);
   glDisable(GL_TEXTURE_1D);
   glActiveTexture(GL_TEXTURE6);
   glDisable(GL_TEXTURE_1D);
   glActiveTexture(GL_TEXTURE7);
   glDisable(GL_TEXTURE_1D);
+#endif
 #endif // USE_3DLUT
   glActiveTexture(GL_TEXTURE0);
   VerifyGLState();

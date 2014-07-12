@@ -16,9 +16,11 @@ int loadLUT(unsigned flags,
     int *outlutsize)
 {
     cmsHPROFILE hProfile;
+#if 0
     cmsPipeline *pipeline;
     cmsStage *inputstage, *clutstage, *outputstage;
     cmsToneCurve **inputcurves, **outputcurves;
+#endif
     int lutsamples;
 
     // FIXME - device link filename based on colorspace in flags
@@ -33,6 +35,8 @@ int loadLUT(unsigned flags,
         // TODO: create a source profile, link together for device link, convert to profile, use that?
     }
 
+#if 0
+// disable parsing the curves and CLUT, sample the transformation instead
     if (!cmsIsTag(hProfile, cmsSigAToB0Tag)) {
         printf("expected to find AToB0 tag\n");
         return 1;
@@ -57,6 +61,7 @@ int loadLUT(unsigned flags,
     // to use YCbCr source encoding with collink, curves must be disabled
     inputcurves = ((_cmsStageToneCurvesData *)cmsStageData(inputstage))->TheCurves;
 
+    // input table won't be linear since we're in limited range RGB
     for (int c = 0; c < 3; c++ )
         if (!cmsIsToneCurveLinear(inputcurves[c])) {
                 printf("expected linear input table\n");
@@ -136,6 +141,37 @@ int loadLUT(unsigned flags,
         else
             (*CLUT)[i] = clutdata->Tab.T[i] / 65535.0F;
     }
+#endif
+
+    *outluts = 0;
+
+#define LUT_RESOLUTION 65
+
+    cmsHTRANSFORM hTransform = cmsCreateMultiprofileTransform(&hProfile,
+        1,
+        TYPE_RGB_FLT,
+        TYPE_RGB_FLT,
+        INTENT_PERCEPTUAL,
+        0);
+
+    lutsamples = LUT_RESOLUTION * LUT_RESOLUTION * LUT_RESOLUTION * 3;
+    *CLUTsize = LUT_RESOLUTION;
+    *CLUT = (float*)malloc(lutsamples * sizeof(float));
+
+    cmsFloat32Number input[3*LUT_RESOLUTION];
+
+    for (int b=0; b<LUT_RESOLUTION; b++)
+      for (int g=0; g<LUT_RESOLUTION; g++)
+      {
+        for (int r=0; r<LUT_RESOLUTION; r++)
+        {
+          input[r*3+0] = r / (LUT_RESOLUTION-1.0);
+          input[r*3+1] = g / (LUT_RESOLUTION-1.0);
+          input[r*3+2] = b / (LUT_RESOLUTION-1.0);
+        }
+        int index = (b*LUT_RESOLUTION*LUT_RESOLUTION + g*LUT_RESOLUTION)*3;
+        cmsDoTransform(hTransform, input, (*CLUT)+index, LUT_RESOLUTION);
+      }
 
     cmsCloseProfile(hProfile);
 

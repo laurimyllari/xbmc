@@ -124,7 +124,7 @@ void main()
   vec4  rgb     = m_yuvmat * yuv;
 
 #ifdef XBMC_USE_3DLUT
-  rgb             = texture3D(m_CLUT, rgb.bgr);
+  rgb             = texture3D(m_CLUT, rgb.rgb);
 //  rgb.r           = texture1D(m_OutLUTR, rgb.r).r;
 //  rgb.g           = texture1D(m_OutLUTG, rgb.g).r;
 //  rgb.b           = texture1D(m_OutLUTB, rgb.b).r;
