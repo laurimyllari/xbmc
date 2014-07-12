@@ -246,11 +246,13 @@ BaseYUV2RGBGLSLShader::BaseYUV2RGBGLSLShader(bool rect, unsigned flags, ERenderF
   {
     CLog::Log(LOGNOTICE, "YUV2RGB: Configuring shader for 3dLUT");
     m_defines += "#define XBMC_USE_3DLUT\n";
+#if 0
     if (!g_Windowing.UseLimitedColor())
     {
       CLog::Log(LOGNOTICE, "YUV2RGB: Configuring shader for full range output");
       m_defines += "#define XBMC_EXPAND_TO_FULLRANGE\n";
     }
+#endif
   }
 
   VertexShader()->LoadSource("yuv2rgb_vertex.glsl", m_defines);
