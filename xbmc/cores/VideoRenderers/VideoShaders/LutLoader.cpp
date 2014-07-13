@@ -8,6 +8,39 @@
 #include <stdlib.h>
 #include <string.h>
 
+cmsHPROFILE gammaprofile(cmsCIEXYZ blackpoint, float brightness, float contrast)
+{
+  float gamma = 2.4;
+  double bkipow = brightness * pow(blackpoint.Y, 1.0/gamma);
+  double wtipow = contrast * 1.0;
+  double lift = bkipow / (wtipow - bkipow);
+  double gain = pow(wtipow - bkipow, gamma);
+
+  const int tablesize = 1024;
+  cmsFloat32Number gammatable[tablesize];
+  for (int i=0; i<tablesize; i++)
+  {
+    gammatable[i] = gain * pow(((double) i)/(tablesize-1) + lift, gamma);
+  }
+
+  cmsToneCurve*  Gamma = cmsBuildTabulatedToneCurveFloat(0,
+      tablesize,
+      gammatable);
+  cmsToneCurve*  Gamma3[3];
+  cmsHPROFILE hProfile;
+  cmsCIExyY whitepoint = { 0.3127, 0.3290, 1.0 };
+  cmsCIExyYTRIPLE primaries = {
+      0.640, 0.330, 1.0,
+      0.300, 0.600, 1.0,
+      0.150, 0.060, 1.0 };
+
+  Gamma3[0] = Gamma3[1] = Gamma3[2] = Gamma;
+  hProfile = cmsCreateRGBProfile(&whitepoint,
+      &primaries,
+      Gamma3);
+  cmsFreeToneCurve(Gamma);
+  return hProfile;
+}
 
 int loadLUT(unsigned flags,
     float **CLUT,
@@ -16,143 +49,54 @@ int loadLUT(unsigned flags,
     int *outlutsize)
 {
     cmsHPROFILE hProfile;
-#if 0
-    cmsPipeline *pipeline;
-    cmsStage *inputstage, *clutstage, *outputstage;
-    cmsToneCurve **inputcurves, **outputcurves;
-#endif
+    cmsHTRANSFORM hTransform;
     int lutsamples;
 
     // FIXME - device link filename based on colorspace in flags
     hProfile = cmsOpenProfileFromFile("rec709.icc", "r");
-    if (!hProfile) {
-        printf("device link not found\n");
-        return 1;
-    }
-    if (cmsGetDeviceClass(hProfile) != cmsSigLinkClass) {
-        printf("expected device link profile\n");
-        return 1;
-        // TODO: create a source profile, link together for device link, convert to profile, use that?
+    if (!hProfile)
+    {
+      printf("ICC profile not found\n");
+      return 1;
     }
 
-#if 0
-// disable parsing the curves and CLUT, sample the transformation instead
-    if (!cmsIsTag(hProfile, cmsSigAToB0Tag)) {
-        printf("expected to find AToB0 tag\n");
-        return 1;
-    }
-
-    pipeline = (cmsPipeline*)cmsReadTag(hProfile, cmsSigAToB0Tag);
-
-    if (cmsPipelineInputChannels(pipeline) != 3 || cmsPipelineOutputChannels(pipeline) != 3) {
-        printf("expected 3 channels\n");
-        return 1;
-    }
-
-    if (!cmsPipelineCheckAndRetreiveStages(
-            pipeline,
-            3,
-            cmsSigCurveSetElemType, cmsSigCLutElemType, cmsSigCurveSetElemType,
-            &inputstage, &clutstage, &outputstage)) {
-        printf("expected <table, clut, table> in AToB0\n");
-        return 1;
-    }
-
-    // to use YCbCr source encoding with collink, curves must be disabled
-    inputcurves = ((_cmsStageToneCurvesData *)cmsStageData(inputstage))->TheCurves;
-
-    // input table won't be linear since we're in limited range RGB
-    for (int c = 0; c < 3; c++ )
-        if (!cmsIsToneCurveLinear(inputcurves[c])) {
-                printf("expected linear input table\n");
-                return 1;
-        }
-
-    // It is possible that output curve has been added with applycal. This
-    // gives two options for including device calibration: -a to collink
-    // (calibration is applied to the 3DLUT?) or applycal. Would the latter
-    // give better precision?
-    outputcurves = ((_cmsStageToneCurvesData *)cmsStageData(outputstage))->TheCurves;
-    if (cmsIsToneCurveLinear(outputcurves[0])
-            && cmsIsToneCurveLinear(outputcurves[1])
-            && cmsIsToneCurveLinear(outputcurves[2])) {
-        printf("output curves seem linear and could be ignored\n");
-        *outlutsize = 16;
-    } else {
-        // Use the same size as lcms2 uses for its estimated representation
-        *outlutsize = cmsGetToneCurveEstimatedTableEntries(outputcurves[0]);
-    }
-    printf("using output table size %d\n", *outlutsize);
-
-#ifdef DEBUG
-    for (int c = 0; c < 3; c++ ) {
-        printf("outputcurves[%d]:\n" \
-                "\tisMultisegment: %s\n" \
-                "\tisLinear: %s\n" \
-                "\tisMonotonic: %s\n" \
-                "\tisDescending: %s\n" \
-                "\tgammaEstimate: %f\n" \
-                "\testimatedTableEntries: %d\n",
-                c,
-                cmsIsToneCurveMultisegment(outputcurves[c]) ? "true" : "false",
-                cmsIsToneCurveLinear(outputcurves[c]) ? "true" : "false",
-                cmsIsToneCurveMonotonic(outputcurves[c]) ? "true" : "false",
-                cmsIsToneCurveDescending(outputcurves[c]) ? "true" : "false",
-                cmsEstimateGamma(outputcurves[c], 0.01),
-                cmsGetToneCurveEstimatedTableEntries(outputcurves[c]));
-    }
-#endif
-
-    *outluts = (float*)malloc((*outlutsize) * 3 * sizeof(float));
-    for (int c = 0; c < 3; c++ ) {
-        for (int x = 0; x < (*outlutsize); x++) {
-            (*outluts)[c*(*outlutsize) + x] = cmsEvalToneCurveFloat(
-                    outputcurves[c],
-                    (float)x / ((*outlutsize)-1));
-        }
-    }
-
-#ifdef DEBUG
-    for (int c = 0; c < 3; c++ )
-      for (int x = 0; x < (*outlutsize); x++) {
-        printf("%2d: ", x);
-        printf(" %0.4f", (*outluts)[c*(*outlutsize) + x]);
-        printf("\n");
+    if (cmsGetDeviceClass(hProfile) == cmsSigDisplayClass)
+    {
+      printf("got display profile\n");
+      // check black point
+      cmsCIEXYZ blackpoint = { 0, 0, 0};
+      if (cmsDetectBlackPoint(&blackpoint, hProfile, INTENT_PERCEPTUAL, 0))
+      {
+        printf("black point: %f\n", blackpoint.Y);
       }
-#endif
 
-    _cmsStageCLutData *clutdata = ((_cmsStageCLutData *)cmsStageData(clutstage));
-    lutsamples = clutdata->nEntries;
-    *CLUTsize = round(pow(lutsamples / 3, 1.0/3));
+      // create input profile (monitor to simulate)
+      cmsHPROFILE inputprofile = gammaprofile(blackpoint, 1.0, 1.0);
 
-    printf("lut size %dx%dx%d, %s\n",
-            *CLUTsize, *CLUTsize, *CLUTsize, clutdata->HasFloatValues ? "float" : "uint16");
-
-    if ((*CLUTsize)*(*CLUTsize)*(*CLUTsize)*3 != lutsamples) {
-        printf("calculated LUT dimensions don't match sample count\n");
-        return 1;
+      // create the transform
+      hTransform = cmsCreateTransform(inputprofile, TYPE_RGB_FLT,
+          hProfile, TYPE_RGB_FLT,
+          INTENT_PERCEPTUAL, 0);
+      cmsCloseProfile(inputprofile);
     }
-
-    *CLUT = (float*)malloc(lutsamples * sizeof(float));
-
-    for (int i = 0; i < lutsamples; i++) {
-        if (clutdata->HasFloatValues)
-            (*CLUT)[i] = clutdata->Tab.TFloat[i];
-        else
-            (*CLUT)[i] = clutdata->Tab.T[i] / 65535.0F;
+    else if (cmsGetDeviceClass(hProfile) == cmsSigLinkClass)
+    {
+      hTransform = cmsCreateMultiprofileTransform(&hProfile,
+          1,
+          TYPE_RGB_FLT,
+          TYPE_RGB_FLT,
+          INTENT_PERCEPTUAL,
+          0);
     }
-#endif
+    else
+    {
+      printf("unsupported profile type\n");
+      return 1;
+    }
 
     *outluts = 0;
 
 #define LUT_RESOLUTION 65
-
-    cmsHTRANSFORM hTransform = cmsCreateMultiprofileTransform(&hProfile,
-        1,
-        TYPE_RGB_FLT,
-        TYPE_RGB_FLT,
-        INTENT_PERCEPTUAL,
-        0);
 
     lutsamples = LUT_RESOLUTION * LUT_RESOLUTION * LUT_RESOLUTION * 3;
     *CLUTsize = LUT_RESOLUTION;
@@ -172,6 +116,18 @@ int loadLUT(unsigned flags,
         int index = (b*LUT_RESOLUTION*LUT_RESOLUTION + g*LUT_RESOLUTION)*3;
         cmsDoTransform(hTransform, input, (*CLUT)+index, LUT_RESOLUTION);
       }
+
+#if 0 // debug 3dLUT greyscale
+    for (int y=0; y<LUT_RESOLUTION; y+=5)
+    {
+      int index = 3*(y*LUT_RESOLUTION*LUT_RESOLUTION + y*LUT_RESOLUTION + y);
+      printf("  %d: %d %d %d\n",
+          y * 255 / LUT_RESOLUTION,
+          (int)round(255*(*CLUT)[index+0]),
+          (int)round(255*(*CLUT)[index+1]),
+          (int)round(255*(*CLUT)[index+2]));
+    }
+#endif
 
     cmsCloseProfile(hProfile);
 
