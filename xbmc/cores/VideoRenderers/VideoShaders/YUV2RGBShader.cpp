@@ -111,9 +111,8 @@ void CalculateYUVMatrix(TransformMatrix &matrix
       coef.m[row][col] = conv[col][row];
   coef.identity = false;
 
-  // Scale to limited range if so configured, or if 3dLUT is used use
-  // limited range internally and convert range later if necessary
-  if(g_Windowing.UseLimitedColor() || g_Windowing.Use3dLUT())
+  // Decode to full range if using 3dLUT
+  if(g_Windowing.UseLimitedColor() && !g_Windowing.Use3dLUT())
   {
     matrix *= TransformMatrix::CreateTranslation(+ 16.0f / 255
                                                , + 16.0f / 255
