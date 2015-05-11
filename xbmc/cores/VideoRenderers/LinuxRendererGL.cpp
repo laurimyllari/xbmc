@@ -1332,6 +1332,7 @@ void CLinuxRendererGL::RenderToFBO(int index, int field, bool weave /*= false*/)
       return;
     }
 
+    // TODO: switch to GL_RGBA16 or GL_RGBA16F
     if (!m_fbo.fbo.CreateAndBindToTexture(GL_TEXTURE_2D, m_sourceWidth, m_sourceHeight, GL_RGBA))
     {
       CLog::Log(LOGERROR, "GL: Error creating texture and binding to FBO");

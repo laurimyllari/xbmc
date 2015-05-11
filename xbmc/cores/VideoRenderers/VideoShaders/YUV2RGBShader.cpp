@@ -107,7 +107,7 @@ void CalculateYUVMatrix(TransformMatrix &matrix
       coef.m[row][col] = conv[col][row];
   coef.identity = false;
 
-
+  // TODO: keep video levels if using color management
   if(g_Windowing.UseLimitedColor())
   {
     matrix *= TransformMatrix::CreateTranslation(+ 16.0f / 255
@@ -205,6 +205,7 @@ BaseYUV2RGBGLSLShader::BaseYUV2RGBGLSLShader(bool rect, unsigned flags, ERenderF
   else
     m_defines += "#define XBMC_STRETCH 0\n";
 
+  // TODO: construct GLSLOutput
   if (output)
     m_defines += "#define XBMC_OUTPUT 1\n";
   else

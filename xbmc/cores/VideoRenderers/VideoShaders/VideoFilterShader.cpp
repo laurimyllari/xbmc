@@ -127,10 +127,14 @@ ConvolutionFilterShader::ConvolutionFilterShader(ESCALINGMETHOD method, bool str
   else
     defines += "#define XBMC_STRETCH 0\n";
 
-  if (output)
+  // TODO: construct a GLSLOutput object
+  if (output) {
+    m_glslOutput = new GLSLOutput();
     defines += "#define XBMC_OUTPUT 1\n";
-  else
+  } else {
+    m_glslOutput = null;
     defines += "#define XBMC_OUTPUT 0\n";
+  }
 
   //tell shader if we're using a 1D texture
 #ifdef USE1DTEXTURE
@@ -224,6 +228,9 @@ void ConvolutionFilterShader::Free()
   if (m_kernelTex1)
     glDeleteTextures(1, &m_kernelTex1);
   m_kernelTex1 = 0;
+  if (m_glslOutput)
+    delete m_glslOutput;
+  m_glslOutput = null;
   BaseVideoFilterShader::Free();
 }
 

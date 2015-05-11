@@ -77,6 +77,8 @@ namespace Shaders {
     ESCALINGMETHOD m_method;
     bool           m_floattex; //if float textures are supported
     GLint          m_internalformat;
+
+    GLSLOutput    *m_glslOutput;
   };
 
   class StretchFilterShader : public BaseVideoFilterShader
