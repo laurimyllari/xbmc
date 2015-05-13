@@ -206,10 +206,12 @@ BaseYUV2RGBGLSLShader::BaseYUV2RGBGLSLShader(bool rect, unsigned flags, ERenderF
     m_defines += "#define XBMC_STRETCH 0\n";
 
   // TODO: construct GLSLOutput
-  if (output)
-    m_defines += "#define XBMC_OUTPUT 1\n";
-  else
-    m_defines += "#define XBMC_OUTPUT 0\n";
+  if (output) {
+    m_glslOutput = new GLSLOutput();
+    m_defines += m_glslOutput->GetDefines();
+  } else {
+    m_glslOutput = 0;
+  }
 
   if (m_format == RENDER_FMT_YUV420P ||
       m_format == RENDER_FMT_YUV420P10 ||
@@ -267,6 +269,8 @@ void BaseYUV2RGBGLSLShader::OnCompiledAndLinked()
   m_hStretch = glGetUniformLocation(ProgramHandle(), "m_stretch");
   m_hStep    = glGetUniformLocation(ProgramHandle(), "m_step");
   VerifyGLState();
+
+  if (m_glslOutput) m_glslOutput->OnCompiledAndLinked(ProgramHandle());
 }
 
 bool BaseYUV2RGBGLSLShader::OnEnabled()
@@ -288,9 +292,19 @@ bool BaseYUV2RGBGLSLShader::OnEnabled()
   glUniform1f(m_hAlpha, m_alpha);
 #endif
   VerifyGLState();
+  if (m_glslOutput) m_glslOutput->OnEnabled();
   return true;
 }
 
+void BaseYUV2RGBGLSLShader::OnDisabled()
+{
+  if (m_glslOutput) m_glslOutput->OnDisabled();
+}
+
+void BaseYUV2RGBGLSLShader::Free()
+{
+  if (m_glslOutput) m_glslOutput->Free();
+}
 //////////////////////////////////////////////////////////////////////
 // BaseYUV2RGBGLSLShader - base class for GLSL YUV2RGB shaders
 //////////////////////////////////////////////////////////////////////

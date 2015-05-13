@@ -24,6 +24,8 @@
 #include "guilib/TransformMatrix.h"
 #include "cores/VideoRenderers/RenderFormats.h"
 
+#include "GLSLOutput.h"
+
 void CalculateYUVMatrix(TransformMatrix &matrix
                         , unsigned int  flags
                         , ERenderFormat format
@@ -92,6 +94,8 @@ namespace Shaders {
   protected:
     void OnCompiledAndLinked();
     bool OnEnabled();
+    void OnDisabled();
+    void Free();
 
     unsigned m_flags;
     ERenderFormat m_format;
@@ -104,6 +108,8 @@ namespace Shaders {
     float m_stretch;
 
     string m_defines;
+
+    Shaders::GLSLOutput *m_glslOutput;
 
     // shader attribute handles
     GLint m_hYTex;

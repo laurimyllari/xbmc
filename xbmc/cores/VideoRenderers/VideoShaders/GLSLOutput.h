@@ -23,6 +23,7 @@
  */
 
 #include "system.h"
+#include "utils/GLUtils.h"
 
 namespace Shaders {
 
@@ -30,8 +31,10 @@ namespace Shaders {
   {
   public:
     GLSLOutput();
-    void OnCompiledAndLinked();
+    std::string GetDefines();
+    void OnCompiledAndLinked(GLuint programHandle);
     bool OnEnabled();
+    void OnDisabled();
     void Free();
 
   private:
@@ -54,6 +57,6 @@ namespace Shaders {
     GLuint m_tDitherTex;
 
 
-  }
+  };
 }
 #endif // __GLSLOUTPUT_H__

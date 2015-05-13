@@ -29,6 +29,7 @@
 
 #include "guilib/Shader.h"
 #include "settings/VideoSettings.h"
+#include "GLSLOutput.h"
 
 namespace Shaders {
 
@@ -78,7 +79,7 @@ namespace Shaders {
     bool           m_floattex; //if float textures are supported
     GLint          m_internalformat;
 
-    GLSLOutput    *m_glslOutput;
+    Shaders::GLSLOutput *m_glslOutput;
   };
 
   class StretchFilterShader : public BaseVideoFilterShader

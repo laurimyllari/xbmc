@@ -19,9 +19,11 @@
  */
 
 #include "utils/log.h"
-#include "utils/GLUtils.h"
 
+#include "GLSLOutput.h"
 #include "dither.h"
+
+using namespace Shaders;
 
 GLSLOutput::GLSLOutput()
 {
@@ -43,17 +45,24 @@ GLSLOutput::GLSLOutput()
   m_fullRange = true; // hardcode fullrange for now
 }
 
+std::string GLSLOutput::GetDefines()
+{
+  std::string defines = "#define XBMC_OUTPUT 1\n";
+  if (m_dither) defines += "#define XBMC_DITHER 1\n";
+  if (m_fullRange) defines += "#define XBMC_FULLRANGE 1\n";
+  return defines;
+}
 
-void GLSLOutput::OnCompiledAndLinked()
+void GLSLOutput::OnCompiledAndLinked(GLuint programHandle)
 {
   FreeTextures();
 
   // TODO: get uniform locations
   //   dithering
   if (m_dither) {
-    m_hDither      = glGetUniformLocation(ProgramHandle(), "m_dither");
-    m_hDitherQuant = glGetUniformLocation(ProgramHandle(), "m_ditherquant");
-    m_hDitherSize  = glGetUniformLocation(ProgramHandle(), "m_dithersize");
+    m_hDither      = glGetUniformLocation(programHandle, "m_dither");
+    m_hDitherQuant = glGetUniformLocation(programHandle, "m_ditherquant");
+    m_hDitherSize  = glGetUniformLocation(programHandle, "m_dithersize");
   }
 
   if (m_dither) {
