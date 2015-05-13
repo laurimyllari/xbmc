@@ -94,7 +94,8 @@ void CalculateYUVMatrix(TransformMatrix &matrix
                         , unsigned int  flags
                         , ERenderFormat format
                         , float         black
-                        , float         contrast)
+                        , float         contrast
+                        , bool          limited)
 {
   TransformMatrix coef;
 
@@ -107,8 +108,8 @@ void CalculateYUVMatrix(TransformMatrix &matrix
       coef.m[row][col] = conv[col][row];
   coef.identity = false;
 
-  // TODO: keep video levels if using color management
-  if(g_Windowing.UseLimitedColor())
+  // TODO: keep video levels if using GLSLOutput
+  if(g_Windowing.UseLimitedColor() || limited)
   {
     matrix *= TransformMatrix::CreateTranslation(+ 16.0f / 255
                                                , + 16.0f / 255
@@ -148,10 +149,11 @@ static void CalculateYUVMatrixGL(GLfloat      res[4][4]
                                , unsigned int flags
                                , ERenderFormat format
                                , float        black
-                               , float        contrast)
+                               , float        contrast
+                               , bool         limited)
 {
   TransformMatrix matrix;
-  CalculateYUVMatrix(matrix, flags, format, black, contrast);
+  CalculateYUVMatrix(matrix, flags, format, black, contrast, limited);
 
   for(int row = 0; row < 3; row++)
     for(int col = 0; col < 4; col++)
@@ -283,7 +285,7 @@ bool BaseYUV2RGBGLSLShader::OnEnabled()
   glUniform2f(m_hStep, 1.0 / m_width, 1.0 / m_height);
 
   GLfloat matrix[4][4];
-  CalculateYUVMatrixGL(matrix, m_flags, m_format, m_black, m_contrast);
+  CalculateYUVMatrixGL(matrix, m_flags, m_format, m_black, m_contrast, m_glslOutput != 0);
 
   glUniformMatrix4fv(m_hMatrix, 1, GL_FALSE, (GLfloat*)matrix);
 #if HAS_GLES == 2
@@ -426,7 +428,7 @@ void YUV2RGBProgressiveShaderARB::OnCompiledAndLinked()
 bool YUV2RGBProgressiveShaderARB::OnEnabled()
 {
   GLfloat matrix[4][4];
-  CalculateYUVMatrixGL(matrix, m_flags, m_format, m_black, m_contrast);
+  CalculateYUVMatrixGL(matrix, m_flags, m_format, m_black, m_contrast, false);
 
   for(int i=0;i<4;i++)
     glProgramLocalParameter4fARB(GL_FRAGMENT_PROGRAM_ARB, i
