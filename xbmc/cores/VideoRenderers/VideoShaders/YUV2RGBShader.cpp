@@ -260,6 +260,7 @@ BaseYUV2RGBGLSLShader::~BaseYUV2RGBGLSLShader()
 
 void BaseYUV2RGBGLSLShader::OnCompiledAndLinked()
 {
+  CLog::Log(LOGDEBUG, "GL: BaseYUV2RGBGLSLShader::OnCompiledAndLinked\n");
 #if HAS_GLES == 2
   m_hVertex = glGetAttribLocation(ProgramHandle(),  "m_attrpos");
   m_hYcoord = glGetAttribLocation(ProgramHandle(),  "m_attrcordY");
@@ -310,6 +311,7 @@ void BaseYUV2RGBGLSLShader::OnDisabled()
 
 void BaseYUV2RGBGLSLShader::Free()
 {
+  CLog::Log(LOGDEBUG, "GL: BaseYUV2RGBGLSLShader::Free\n");
   if (m_glslOutput) m_glslOutput->Free();
 }
 //////////////////////////////////////////////////////////////////////

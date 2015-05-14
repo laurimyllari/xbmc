@@ -808,6 +808,7 @@ void CLinuxRendererGL::UpdateVideoFilter()
 
   if (m_pVideoFilterShader)
   {
+    CLog::Log(LOGDEBUG, "GL: UpdateVideoFilter: free old VideoFilterShader");
     m_pVideoFilterShader->Free();
     delete m_pVideoFilterShader;
     m_pVideoFilterShader = NULL;
@@ -836,6 +837,7 @@ void CLinuxRendererGL::UpdateVideoFilter()
     m_renderQuality = RQ_SINGLEPASS;
     if (((m_renderMethod & RENDER_VDPAU) || (m_renderMethod & RENDER_VAAPI)) && m_nonLinStretch)
     {
+      CLog::Log(LOGDEBUG, "GL: UpdateVideoFilter: new StretchFilterShader");
       m_pVideoFilterShader = new StretchFilterShader();
       if (!m_pVideoFilterShader->CompileAndLink())
       {
@@ -845,6 +847,7 @@ void CLinuxRendererGL::UpdateVideoFilter()
     }
     else
     {
+      CLog::Log(LOGDEBUG, "GL: UpdateVideoFilter: new DefaultFilterShader");
       m_pVideoFilterShader = new DefaultFilterShader();
       if (!m_pVideoFilterShader->CompileAndLink())
       {
@@ -876,6 +879,7 @@ void CLinuxRendererGL::UpdateVideoFilter()
       }
     }
 
+    CLog::Log(LOGDEBUG, "GL: UpdateVideoFilter: new ConvolutionFilterShader");
     m_pVideoFilterShader = new ConvolutionFilterShader(m_scalingMethod, m_nonLinStretch);
     if (!m_pVideoFilterShader->CompileAndLink())
     {
@@ -959,6 +963,7 @@ void CLinuxRendererGL::LoadShaders(int field)
 
         if (m_pYUVShader && m_pYUVShader->CompileAndLink())
         {
+          CLog::Log(LOGDEBUG, "GL: CompileAndLink ok, using RENDER_GLSL");
           m_renderMethod = RENDER_GLSL;
           UpdateVideoFilter();
           break;
