@@ -212,7 +212,7 @@ BaseYUV2RGBGLSLShader::BaseYUV2RGBGLSLShader(bool rect, unsigned flags, ERenderF
     m_glslOutput = new GLSLOutput();
     m_defines += m_glslOutput->GetDefines();
   } else {
-    m_glslOutput = 0;
+    m_glslOutput = NULL;
   }
 
   if (m_format == RENDER_FMT_YUV420P ||
@@ -285,7 +285,7 @@ bool BaseYUV2RGBGLSLShader::OnEnabled()
   glUniform2f(m_hStep, 1.0 / m_width, 1.0 / m_height);
 
   GLfloat matrix[4][4];
-  CalculateYUVMatrixGL(matrix, m_flags, m_format, m_black, m_contrast, m_glslOutput != 0);
+  CalculateYUVMatrixGL(matrix, m_flags, m_format, m_black, m_contrast, m_glslOutput != NULL);
 
   glUniformMatrix4fv(m_hMatrix, 1, GL_FALSE, (GLfloat*)matrix);
 #if HAS_GLES == 2
@@ -305,7 +305,11 @@ void BaseYUV2RGBGLSLShader::OnDisabled()
 
 void BaseYUV2RGBGLSLShader::Free()
 {
-  if (m_glslOutput) m_glslOutput->Free();
+  if (m_glslOutput) {
+    m_glslOutput->Free();
+    delete m_glslOutput;
+    m_glslOutput = NULL;
+  }
 }
 //////////////////////////////////////////////////////////////////////
 // BaseYUV2RGBGLSLShader - base class for GLSL YUV2RGB shaders

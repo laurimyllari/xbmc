@@ -132,7 +132,7 @@ ConvolutionFilterShader::ConvolutionFilterShader(ESCALINGMETHOD method, bool str
     m_glslOutput = new GLSLOutput();
     defines += m_glslOutput->GetDefines();
   } else {
-    m_glslOutput = 0;
+    m_glslOutput = NULL;
   }
 
   //tell shader if we're using a 1D texture
@@ -205,6 +205,8 @@ void ConvolutionFilterShader::OnCompiledAndLinked()
   glActiveTexture(GL_TEXTURE0);
 
   VerifyGLState();
+
+  if (m_glslOutput) m_glslOutput->OnCompiledAndLinked(ProgramHandle());
 }
 
 bool ConvolutionFilterShader::OnEnabled()
@@ -219,7 +221,13 @@ bool ConvolutionFilterShader::OnEnabled()
   glUniform2f(m_hStepXY, m_stepX, m_stepY);
   glUniform1f(m_hStretch, m_stretch);
   VerifyGLState();
+  if (m_glslOutput) m_glslOutput->OnEnabled();
   return true;
+}
+
+void ConvolutionFilterShader::OnDisabled()
+{
+  if (m_glslOutput) m_glslOutput->OnDisabled();
 }
 
 void ConvolutionFilterShader::Free()
@@ -227,9 +235,11 @@ void ConvolutionFilterShader::Free()
   if (m_kernelTex1)
     glDeleteTextures(1, &m_kernelTex1);
   m_kernelTex1 = 0;
-  if (m_glslOutput)
+  if (m_glslOutput) {
+    m_glslOutput->Free();
     delete m_glslOutput;
-  m_glslOutput = 0;
+    m_glslOutput = NULL;
+  }
   BaseVideoFilterShader::Free();
 }
 

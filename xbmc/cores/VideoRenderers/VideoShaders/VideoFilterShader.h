@@ -64,6 +64,7 @@ namespace Shaders {
     ConvolutionFilterShader(ESCALINGMETHOD method, bool stretch, bool output=true);
     void OnCompiledAndLinked();
     bool OnEnabled();
+    void OnDisabled();
     void Free();
 
     virtual bool GetTextureFilter(GLint& filter) { filter = GL_NEAREST; return true; }
