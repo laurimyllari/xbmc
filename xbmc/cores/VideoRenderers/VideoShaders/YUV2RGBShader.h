@@ -73,7 +73,7 @@ namespace Shaders {
   {
   public:
     BaseYUV2RGBGLSLShader(bool rect, unsigned flags, ERenderFormat format, bool stretch, bool output=true);
-   ~BaseYUV2RGBGLSLShader() {}
+   ~BaseYUV2RGBGLSLShader();
     virtual void SetField(int field) { m_field  = field; }
     virtual void SetWidth(int w)     { m_width  = w; }
     virtual void SetHeight(int h)    { m_height = h; }

@@ -253,6 +253,11 @@ BaseYUV2RGBGLSLShader::BaseYUV2RGBGLSLShader(bool rect, unsigned flags, ERenderF
   CLog::Log(LOGDEBUG, "GL: BaseYUV2RGBGLSLShader: defines:\n%s", m_defines.c_str());
 }
 
+BaseYUV2RGBGLSLShader::~BaseYUV2RGBGLSLShader()
+{
+  delete m_glslOutput;
+}
+
 void BaseYUV2RGBGLSLShader::OnCompiledAndLinked()
 {
 #if HAS_GLES == 2
@@ -305,11 +310,7 @@ void BaseYUV2RGBGLSLShader::OnDisabled()
 
 void BaseYUV2RGBGLSLShader::Free()
 {
-  if (m_glslOutput) {
-    m_glslOutput->Free();
-    delete m_glslOutput;
-    m_glslOutput = NULL;
-  }
+  if (m_glslOutput) m_glslOutput->Free();
 }
 //////////////////////////////////////////////////////////////////////
 // BaseYUV2RGBGLSLShader - base class for GLSL YUV2RGB shaders

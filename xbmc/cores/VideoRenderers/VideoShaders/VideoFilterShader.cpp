@@ -147,6 +147,11 @@ ConvolutionFilterShader::ConvolutionFilterShader(ESCALINGMETHOD method, bool str
   PixelShader()->AppendSource("output.glsl");
 }
 
+ConvolutionFilterShader::~ConvolutionFilterShader()
+{
+  delete m_glslOutput;
+}
+
 void ConvolutionFilterShader::OnCompiledAndLinked()
 {
   // obtain shader attribute handles on successfull compilation
@@ -235,11 +240,7 @@ void ConvolutionFilterShader::Free()
   if (m_kernelTex1)
     glDeleteTextures(1, &m_kernelTex1);
   m_kernelTex1 = 0;
-  if (m_glslOutput) {
-    m_glslOutput->Free();
-    delete m_glslOutput;
-    m_glslOutput = NULL;
-  }
+  if (m_glslOutput) m_glslOutput->Free();
   BaseVideoFilterShader::Free();
 }
 

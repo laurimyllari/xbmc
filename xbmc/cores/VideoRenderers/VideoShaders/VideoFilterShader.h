@@ -62,6 +62,7 @@ namespace Shaders {
   {
   public:
     ConvolutionFilterShader(ESCALINGMETHOD method, bool stretch, bool output=true);
+    ~ConvolutionFilterShader();
     void OnCompiledAndLinked();
     bool OnEnabled();
     void OnDisabled();
