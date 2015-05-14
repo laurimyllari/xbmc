@@ -209,7 +209,7 @@ BaseYUV2RGBGLSLShader::BaseYUV2RGBGLSLShader(bool rect, unsigned flags, ERenderF
 
   // TODO: construct GLSLOutput
   if (output) {
-    m_glslOutput = new GLSLOutput();
+    m_glslOutput = new GLSLOutput(3);
     m_defines += m_glslOutput->GetDefines();
   } else {
     m_glslOutput = NULL;

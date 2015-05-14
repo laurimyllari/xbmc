@@ -25,10 +25,10 @@
 
 using namespace Shaders;
 
-GLSLOutput::GLSLOutput()
+GLSLOutput::GLSLOutput(int texunit)
 {
   // TODO: set member variable initial values
-  m_1stTexUnit = 4;
+  m_1stTexUnit = texunit;
   m_uDither = m_1stTexUnit+0;
 
   //   textures

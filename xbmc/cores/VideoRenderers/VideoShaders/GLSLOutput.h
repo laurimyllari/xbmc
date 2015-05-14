@@ -30,7 +30,8 @@ namespace Shaders {
   class GLSLOutput
   {
   public:
-    GLSLOutput();
+    // take the 1st available texture unit as a parameter
+    GLSLOutput(int texunit);
     std::string GetDefines();
     void OnCompiledAndLinked(GLuint programHandle);
     bool OnEnabled();

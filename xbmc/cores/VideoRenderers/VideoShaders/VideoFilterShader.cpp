@@ -129,7 +129,7 @@ ConvolutionFilterShader::ConvolutionFilterShader(ESCALINGMETHOD method, bool str
 
   // TODO: construct a GLSLOutput object
   if (output) {
-    m_glslOutput = new GLSLOutput();
+    m_glslOutput = new GLSLOutput(3);
     defines += m_glslOutput->GetDefines();
   } else {
     m_glslOutput = NULL;
