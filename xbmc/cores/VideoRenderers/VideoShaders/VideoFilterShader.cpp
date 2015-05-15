@@ -127,7 +127,7 @@ ConvolutionFilterShader::ConvolutionFilterShader(ESCALINGMETHOD method, bool str
   else
     defines += "#define XBMC_STRETCH 0\n";
 
-  // TODO: construct a GLSLOutput object
+  // construct a GLSLOutput helper for output stage
   if (output) {
     m_glslOutput = new GLSLOutput(3);
     defines += m_glslOutput->GetDefines();
