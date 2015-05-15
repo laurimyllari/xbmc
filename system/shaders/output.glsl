@@ -14,9 +14,9 @@ void main()
 
 #if (XBMC_DITHER)
   vec2 ditherpos  = gl_FragCoord.xy / m_dithersize;
-  float ditherval = texture2D(m_dither, ditherpos).r;
+  // ditherval is multiplied by 65536/(dither_size^2) to make it [0,1[
   // FIXME: scale dither values before uploading?
-  ditherval       = ditherval * 8.0;
+  float ditherval = texture2D(m_dither, ditherpos).r * 16.0;
   rgb             = floor(rgb * m_ditherquant + ditherval) / m_ditherquant;
 #endif
 

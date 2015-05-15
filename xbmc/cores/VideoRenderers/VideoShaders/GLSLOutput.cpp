@@ -85,7 +85,7 @@ void GLSLOutput::OnCompiledAndLinked(GLuint programHandle)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
     // TODO: load dither texture data
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, dither_size, dither_size, 0, GL_RED, GL_SHORT, dither_matrix);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, dither_size, dither_size, 0, GL_RED, GL_UNSIGNED_SHORT, dither_matrix);
   }
 
   glActiveTexture(GL_TEXTURE0);
