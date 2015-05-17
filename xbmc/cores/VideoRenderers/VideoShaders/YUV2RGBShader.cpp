@@ -108,7 +108,6 @@ void CalculateYUVMatrix(TransformMatrix &matrix
       coef.m[row][col] = conv[col][row];
   coef.identity = false;
 
-  // keep video levels if using GLSLOutput
   if(g_Windowing.UseLimitedColor() || limited)
   {
     matrix *= TransformMatrix::CreateTranslation(+ 16.0f / 255
@@ -170,7 +169,7 @@ static void CalculateYUVMatrixGL(GLfloat      res[4][4]
 //////////////////////////////////////////////////////////////////////
 
 BaseYUV2RGBGLSLShader::BaseYUV2RGBGLSLShader(bool rect, unsigned flags, ERenderFormat format, bool stretch,
-                                             bool output)
+                                             GLSLOutput *output)
 {
   m_width      = 1;
   m_height     = 1;
@@ -207,12 +206,10 @@ BaseYUV2RGBGLSLShader::BaseYUV2RGBGLSLShader(bool rect, unsigned flags, ERenderF
   else
     m_defines += "#define XBMC_STRETCH 0\n";
 
-  // construct GLSLOutput helper
-  if (output) {
-    m_glslOutput = new GLSLOutput(3);
+  // get defines from the output stage if used
+  m_glslOutput = output;
+  if (m_glslOutput) {
     m_defines += m_glslOutput->GetDefines();
-  } else {
-    m_glslOutput = NULL;
   }
 
   if (m_format == RENDER_FMT_YUV420P ||
@@ -291,7 +288,8 @@ bool BaseYUV2RGBGLSLShader::OnEnabled()
   glUniform2f(m_hStep, 1.0 / m_width, 1.0 / m_height);
 
   GLfloat matrix[4][4];
-  CalculateYUVMatrixGL(matrix, m_flags, m_format, m_black, m_contrast, m_glslOutput != NULL);
+  // keep video levels
+  CalculateYUVMatrixGL(matrix, m_flags, m_format, m_black, m_contrast, true);
 
   glUniformMatrix4fv(m_hMatrix, 1, GL_FALSE, (GLfloat*)matrix);
 #if HAS_GLES == 2
@@ -339,7 +337,7 @@ BaseYUV2RGBARBShader::BaseYUV2RGBARBShader(unsigned flags, ERenderFormat format)
 //////////////////////////////////////////////////////////////////////
 
 YUV2RGBProgressiveShader::YUV2RGBProgressiveShader(bool rect, unsigned flags, ERenderFormat format, bool stretch,
-                                                   bool output)
+                                                   GLSLOutput *output)
   : BaseYUV2RGBGLSLShader(rect, flags, format, stretch, output)
 {
 #ifdef HAS_GL

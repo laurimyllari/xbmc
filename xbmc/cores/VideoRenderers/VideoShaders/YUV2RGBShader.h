@@ -72,7 +72,7 @@ namespace Shaders {
     , public CGLSLShaderProgram
   {
   public:
-    BaseYUV2RGBGLSLShader(bool rect, unsigned flags, ERenderFormat format, bool stretch, bool output=true);
+    BaseYUV2RGBGLSLShader(bool rect, unsigned flags, ERenderFormat format, bool stretch, GLSLOutput *output=NULL);
    ~BaseYUV2RGBGLSLShader();
     virtual void SetField(int field) { m_field  = field; }
     virtual void SetWidth(int w)     { m_width  = w; }
@@ -176,7 +176,11 @@ namespace Shaders {
   class YUV2RGBProgressiveShader : public BaseYUV2RGBGLSLShader
   {
   public:
-    YUV2RGBProgressiveShader(bool rect=false, unsigned flags=0, ERenderFormat format=RENDER_FMT_NONE, bool stretch = false, bool output=true);
+    YUV2RGBProgressiveShader(bool rect=false,
+                             unsigned flags=0,
+                             ERenderFormat format=RENDER_FMT_NONE,
+                             bool stretch = false,
+                             GLSLOutput *output=NULL);
   };
 
   class YUV2RGBBobShader : public BaseYUV2RGBGLSLShader
