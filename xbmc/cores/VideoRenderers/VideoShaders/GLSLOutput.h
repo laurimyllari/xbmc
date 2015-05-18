@@ -31,7 +31,7 @@ namespace Shaders {
   {
   public:
     // take the 1st available texture unit as a parameter
-    GLSLOutput(int texunit);
+    GLSLOutput(int texunit, unsigned videoflags);
     std::string GetDefines();
     void OnCompiledAndLinked(GLuint programHandle);
     bool OnEnabled();
@@ -44,6 +44,7 @@ namespace Shaders {
     bool m_dither;
     unsigned m_ditherDepth;
     bool m_fullRange;
+    unsigned m_flags;
     // first texture unit available to us
     int m_1stTexUnit;
     int m_uDither;
