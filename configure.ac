@@ -232,6 +232,10 @@ libusb_disabled_udev_found="== libusb disabled. =="
 libcec_enabled="== libcec enabled. =="
 libcec_disabled="== libcec disabled. CEC adapter support will not be available. =="
 
+liblcms2_enabled="== liblcms2 enabled. =="
+liblcms2_not_found="== Could not find liblcms2. ICC profile support will not be available. =="
+liblcms2_disabled="== liblcms2 disabled. ICC profile support will not be available. =="
+
 AC_ARG_WITH([ffmpeg],
   [AS_HELP_STRING([--with-ffmpeg],
   [ffmpeg options: auto (search pkg-config or auto build), force (always build ffmpeg), shared (link dynamically), path_to_ffmpeg [default=force]])],
@@ -526,6 +530,12 @@ AC_ARG_ENABLE([libcec],
   [enable libcec support (default is auto)])],
   [use_libcec=$enableval],
   [use_libcec=auto])
+
+AC_ARG_ENABLE([liblcms2],
+  [AS_HELP_STRING([--enable-liblcms2],
+  [enable liblcms2 support (default is auto)])],
+  [use_liblcms2=$enableval],
+  [use_liblcms2=auto])
 
 AC_ARG_ENABLE([libcap],
   [AS_HELP_STRING([--enable-libcap],
@@ -1673,6 +1683,21 @@ else
   AC_MSG_NOTICE($libcec_disabled)
 fi
 
+# liblcms2
+if test "$use_liblcms2" = "auto"; then
+  PKG_CHECK_MODULES([UDEV],[liblcms2],,[use_liblcms2="no";AC_MSG_RESULT($liblcms2_not_found)])
+elif test "$use_liblcms2" = "yes" ; then
+  PKG_CHECK_MODULES([UDEV],[libudev],,[use_liblcms2="no";AC_MSG_ERROR($liblcms2_not_found)])
+else
+  AC_MSG_NOTICE($liblcms2_disabled)
+fi
+
+if test "x$use_liblcms2" != "xno"; then
+  USE_LIBLCMS2=1;INCLUDES="$INCLUDES $LCMS2_CFLAGS";LIBS="$LIBS $LCMS2_LIBS"
+  AC_DEFINE([HAVE_LIBLCMS2],[1],["Define to 1 if liblcms2 is installed"])
+  AC_MSG_NOTICE($liblcms2_enabled)
+fi
+
 # libcap
 if test "$use_libcap" != "no"; then
   AC_CHECK_HEADERS([sys/capability.h],,
@@ -2413,6 +2438,12 @@ if test "x$use_libcec" != "xno"; then
   final_message="$final_message\n  libcec support:\tYes"
 else
   final_message="$final_message\n  libcec support:\tNo"
+fi
+
+if test "x$use_liblcms2" != "xno"; then
+  final_message="$final_message\n  liblcms2 support:\tYes"
+else
+  final_message="$final_message\n  liblcms2 support:\tNo"
 fi
 
 if test "x$use_libcap" != "xno"; then
