@@ -32,11 +32,12 @@
 
 using namespace Shaders;
 
-GLSLOutput::GLSLOutput(int texunit)
+GLSLOutput::GLSLOutput(int texunit, unsigned videoflags)
 {
   // set member variable initial values
   m_1stTexUnit = texunit;
   m_uDither = m_1stTexUnit+0;
+  m_flags = videoflags;
 
   //   textures
   m_tDitherTex  = 0;

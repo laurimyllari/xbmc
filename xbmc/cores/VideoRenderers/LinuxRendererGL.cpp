@@ -834,7 +834,7 @@ void CLinuxRendererGL::UpdateVideoFilter()
       }
     }
 
-    m_pVideoFilterShader = new ConvolutionFilterShader(m_scalingMethod, m_nonLinStretch, new GLSLOutput(3));
+    m_pVideoFilterShader = new ConvolutionFilterShader(m_scalingMethod, m_nonLinStretch, new GLSLOutput(3, m_iFlags));
     if (!m_pVideoFilterShader->CompileAndLink())
     {
       CLog::Log(LOGERROR, "GL: Error compiling and linking video filter shader");
@@ -902,7 +902,7 @@ void CLinuxRendererGL::LoadShaders(int field)
         // if single pass, create GLSLOutput helper and pass it to YUV2RGB shader
         m_pYUVShader = new YUV2RGBProgressiveShader(m_textureTarget==GL_TEXTURE_RECTANGLE_ARB, m_iFlags, m_format,
                                                     m_nonLinStretch && m_renderQuality == RQ_SINGLEPASS,
-                                                    (m_renderQuality == RQ_SINGLEPASS) ? new GLSLOutput(3) : NULL);
+                                                    (m_renderQuality == RQ_SINGLEPASS) ? new GLSLOutput(3, m_iFlags) : NULL);
 
         CLog::Log(LOGNOTICE, "GL: Selecting Single Pass YUV 2 RGB shader");
 
