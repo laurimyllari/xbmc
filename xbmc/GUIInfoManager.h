@@ -61,8 +61,6 @@ namespace EPG
   typedef std::shared_ptr<EPG::CEpgInfoTag> CEpgInfoTagPtr;
 }
 
-
-
 // structure to hold multiple integer data
 // for storage referenced from a single integer
 class GUIInfo
