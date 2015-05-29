@@ -33,19 +33,23 @@ GLSLOutput::GLSLOutput(int texunit, unsigned videoflags)
   // set member variable initial values
   m_1stTexUnit = texunit;
   m_uDither = m_1stTexUnit+0;
+  m_uCLUT = m_1stTexUnit+1;
   m_flags = videoflags;
 
   //   textures
   m_tDitherTex  = 0;
+  m_tCLUTTex  = 0;
 
   //   shader attribute handles
   m_hDither      = -1;
   m_hDitherQuant = -1;
   m_hDitherSize  = -1;
+  m_hCLUT        = -1;
 
   m_dither = true; // hardcode dithering for now
   m_ditherDepth = g_Windowing.DitherDepth();
   m_fullRange = !g_Windowing.UseLimitedColor();
+  m_3DLUT = true; // g_Windowing.Use3DLUT();
 }
 
 std::string GLSLOutput::GetDefines()
@@ -53,11 +57,15 @@ std::string GLSLOutput::GetDefines()
   std::string defines = "#define XBMC_OUTPUT 1\n";
   if (m_dither) defines += "#define XBMC_DITHER 1\n";
   if (m_fullRange) defines += "#define XBMC_FULLRANGE 1\n";
+  if (m_3DLUT) defines += "#define XBMC_3DLUT 1\n";
   return defines;
 }
 
 void GLSLOutput::OnCompiledAndLinked(GLuint programHandle)
 {
+  float *CLUT;
+  int CLUTsize;
+
   FreeTextures();
 
   // get uniform locations
@@ -66,6 +74,10 @@ void GLSLOutput::OnCompiledAndLinked(GLuint programHandle)
     m_hDither      = glGetUniformLocation(programHandle, "m_dither");
     m_hDitherQuant = glGetUniformLocation(programHandle, "m_ditherquant");
     m_hDitherSize  = glGetUniformLocation(programHandle, "m_dithersize");
+  }
+  //   3DLUT
+  if (m_3DLUT) {
+    m_hCLUT        = glGetUniformLocation(programHandle, "m_CLUT");
   }
 
   if (m_dither) {
@@ -90,6 +102,38 @@ void GLSLOutput::OnCompiledAndLinked(GLuint programHandle)
 
     // load dither texture data
     glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, dither_size, dither_size, 0, GL_RED, GL_UNSIGNED_SHORT, dither_matrix);
+  }
+
+  if (m_CLUT) {
+    // load 3DLUT
+    // TODO: move to a helper class, provide video primaries for LUT selection
+    if ( loadLUT(m_flags, &CLUT, &CLUTsize) )
+    {
+      CLog::Log(LOGERROR, "Error loading the LUT");
+      return;
+    }
+
+    // create 3DLUT texture
+    glGenTextures(1, &m_tCLUTTex);
+    glActiveTexture(GL_TEXTURE0 + m_uCLUT);
+    if ( m_tCLUTTex <= 0 )
+    {
+      CLog::Log(LOGERROR, "Error creating 3DLUT texture");
+      return;
+    }
+
+    // bind and set 3DLUT texture parameters
+    glBindTexture(GL_TEXTURE_3D, m_tCLUTTex);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+    // load 3DLUT data
+    glTexImage3D(GL_TEXTURE_3D, 0, GL_RGB32F, CLUTsize, CLUTsize, CLUTsize, 0, GL_RGB, GL_FLOAT, CLUT);
   }
 
   glActiveTexture(GL_TEXTURE0);
