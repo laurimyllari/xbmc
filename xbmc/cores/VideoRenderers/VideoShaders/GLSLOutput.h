@@ -46,10 +46,12 @@ namespace Shaders {
     bool m_dither;
     unsigned m_ditherDepth;
     bool m_fullRange;
+    bool m_3DLUT;
     unsigned m_flags;
     // first texture unit available to us
     int m_1stTexUnit;
     int m_uDither;
+    int m_uCLUT;
 
     // defines
 
@@ -57,9 +59,11 @@ namespace Shaders {
     GLint m_hDither;
     GLint m_hDitherQuant;
     GLint m_hDitherSize;
+    GLint m_hCLUT;
 
     // textures
     GLuint m_tDitherTex;
+    GLuint m_tCLUTTex;
 
 
   };
