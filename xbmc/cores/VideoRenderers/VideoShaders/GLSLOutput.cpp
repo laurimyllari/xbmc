@@ -29,6 +29,7 @@
 #endif
 
 #include "dither.h"
+#include "LutLoader.h"
 
 using namespace Shaders;
 
@@ -108,7 +109,7 @@ void GLSLOutput::OnCompiledAndLinked(GLuint programHandle)
     glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, dither_size, dither_size, 0, GL_RED, GL_UNSIGNED_SHORT, dither_matrix);
   }
 
-  if (m_CLUT) {
+  if (m_3DLUT) {
     // load 3DLUT
     // TODO: move to a helper class, provide video primaries for LUT selection
     if ( loadLUT(m_flags, &CLUT, &CLUTsize) )
@@ -166,6 +167,18 @@ bool GLSLOutput::OnEnabled()
     VerifyGLState();
   }
 
+  if (m_3DLUT) {
+    // set texture units
+    glUniform1i(m_hCLUT, m_uCLUT);
+    VerifyGLState();
+
+    // bind textures
+    glActiveTexture(GL_TEXTURE0 + m_uCLUT);
+    glBindTexture(GL_TEXTURE_3D, m_tCLUTTex);
+    glActiveTexture(GL_TEXTURE0);
+    VerifyGLState();
+  }
+
   VerifyGLState();
   return true;
 }
@@ -176,6 +189,10 @@ void GLSLOutput::OnDisabled()
   if (m_dither) {
     glActiveTexture(GL_TEXTURE0 + m_uDither);
     glDisable(GL_TEXTURE_2D);
+  }
+  if (m_3DLUT) {
+    glActiveTexture(GL_TEXTURE0 + m_uCLUT);
+    glDisable(GL_TEXTURE_3D);
   }
   glActiveTexture(GL_TEXTURE0);
   VerifyGLState();
@@ -192,6 +209,11 @@ void GLSLOutput::FreeTextures()
   {
     glDeleteTextures(1, &m_tDitherTex);
     m_tDitherTex = 0;
+  }
+  if (m_tCLUTTex)
+  {
+    glDeleteTextures(1, &m_tCLUTTex);
+    m_tCLUTTex = 0;
   }
 }
 

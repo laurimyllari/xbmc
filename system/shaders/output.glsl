@@ -3,10 +3,17 @@ uniform sampler2D m_dither;
 uniform float     m_ditherquant;
 uniform vec2      m_dithersize;
 #endif
+#if (XBMC_3DLUT)
+uniform sampler3D m_CLUT;
+#endif
 
 void main()
 {
   vec4 rgb        = process();
+
+#if (XBMC_3DLUT)
+  rgb             = texture3D(m_CLUT, yuv.rgb);
+#endif
 
 #if (XBMC_FULLRANGE)
   rgb             = clamp((rgb-(16.0/255.0)) * 255.0/219.0, 0, 1);
