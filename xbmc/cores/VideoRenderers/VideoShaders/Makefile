@@ -1,4 +1,4 @@
-SRCS=YUV2RGBShader.cpp VideoFilterShader.cpp ConvolutionKernels.cpp GLSLOutput.cpp
+SRCS=YUV2RGBShader.cpp VideoFilterShader.cpp ConvolutionKernels.cpp GLSLOutput.cpp LutLoader.cpp
 
 LIB=VideoShaders.a
 
