@@ -12,7 +12,7 @@ void main()
   vec4 rgb        = process();
 
 #if (XBMC_3DLUT)
-  rgb             = texture3D(m_CLUT, yuv.rgb);
+  rgb             = texture3D(m_CLUT, rgb.bgr);
 #endif
 
 #if (XBMC_FULLRANGE)
