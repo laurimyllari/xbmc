@@ -1,4 +1,9 @@
 #include "config.h"
+#include "utils/log.h"
+#include "filesystem/SpecialProtocol.h"
+
+#include <boost/algorithm/clamp.hpp>
+
 #include "LutLoader.h"
 
 #if defined(HAVE_LCMS2)
@@ -7,6 +12,8 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+
+namespace ba = boost::algorithm;
 
 cmsHPROFILE gammaprofile(cmsCIEXYZ blackpoint, float brightness, float contrast)
 {
@@ -46,26 +53,30 @@ int loadLUT(unsigned flags,
     float **CLUT,
     int *CLUTsize)
 {
+    const std::string profileBase = "special://profile/display/default/";
+    std::string profileName = "rec709.icc";
     cmsHPROFILE hProfile;
     cmsHTRANSFORM hTransform;
     int lutsamples;
 
     // FIXME - device link filename based on colorspace in flags
-    hProfile = cmsOpenProfileFromFile("rec709.icc", "r");
+    hProfile = cmsOpenProfileFromFile(
+        CSpecialProtocol::TranslatePath(profileBase + profileName).c_str(),
+        "r");
     if (!hProfile)
     {
-      printf("ICC profile not found\n");
+      CLog::Log(LOGERROR, "ICC profile not found\n");
       return 1;
     }
 
     if (cmsGetDeviceClass(hProfile) == cmsSigDisplayClass)
     {
-      printf("got display profile\n");
+      CLog::Log(LOGDEBUG, "got display profile\n");
       // check black point
       cmsCIEXYZ blackpoint = { 0, 0, 0};
       if (cmsDetectBlackPoint(&blackpoint, hProfile, INTENT_PERCEPTUAL, 0))
       {
-        printf("black point: %f\n", blackpoint.Y);
+        CLog::Log(LOGDEBUG, "black point: %f\n", blackpoint.Y);
       }
 
       // create input profile (monitor to simulate)
@@ -88,7 +99,7 @@ int loadLUT(unsigned flags,
     }
     else
     {
-      printf("unsupported profile type\n");
+      CLog::Log(LOGERROR, "unsupported profile type\n");
       return 1;
     }
 
@@ -99,26 +110,31 @@ int loadLUT(unsigned flags,
     *CLUT = (float*)malloc(lutsamples * sizeof(float));
 
     cmsFloat32Number input[3*LUT_RESOLUTION];
+    cmsFloat32Number output[3*LUT_RESOLUTION];
 
-    for (int b=0; b<LUT_RESOLUTION; b++)
-      for (int g=0; g<LUT_RESOLUTION; g++)
-      {
-        for (int r=0; r<LUT_RESOLUTION; r++)
-        {
-          input[r*3+0] = r / (LUT_RESOLUTION-1.0);
-          input[r*3+1] = g / (LUT_RESOLUTION-1.0);
-          input[r*3+2] = b / (LUT_RESOLUTION-1.0);
+#define videoToPC(x) ( ba::clamp((((x)*255)-16)/219,0,1) )
+#define PCToVideo(x) ( (((x)*219)+16)/255 )
+    for (int rIndex=0; rIndex<LUT_RESOLUTION; rIndex++) {
+      for (int gIndex=0; gIndex<LUT_RESOLUTION; gIndex++) {
+        for (int bIndex=0; bIndex<LUT_RESOLUTION; bIndex++) {
+          input[bIndex*3+0] = videoToPC(rIndex / (LUT_RESOLUTION-1.0));
+          input[bIndex*3+1] = videoToPC(gIndex / (LUT_RESOLUTION-1.0));
+          input[bIndex*3+2] = videoToPC(bIndex / (LUT_RESOLUTION-1.0));
         }
-        int index = (b*LUT_RESOLUTION*LUT_RESOLUTION + g*LUT_RESOLUTION)*3;
-        cmsDoTransform(hTransform, input, (*CLUT)+index, LUT_RESOLUTION);
+        int index = (rIndex*LUT_RESOLUTION*LUT_RESOLUTION + gIndex*LUT_RESOLUTION)*3;
+        cmsDoTransform(hTransform, input, output, LUT_RESOLUTION);
+        for (int i=0; i<LUT_RESOLUTION*3; i++) {
+          (*CLUT)[index+i] = PCToVideo(output[i]);
+        }
       }
+    }
 
-#if 0 // debug 3dLUT greyscale
-    for (int y=0; y<LUT_RESOLUTION; y+=5)
+#if 1 // debug 3dLUT greyscale
+    for (int y=0; y<LUT_RESOLUTION; y+=4)
     {
       int index = 3*(y*LUT_RESOLUTION*LUT_RESOLUTION + y*LUT_RESOLUTION + y);
-      printf("  %d: %d %d %d\n",
-          y * 255 / LUT_RESOLUTION,
+      CLog::Log(LOGDEBUG, "  %d (%d): %d %d %d\n",
+          (int)round(y * 255 / (LUT_RESOLUTION-1.0)), y,
           (int)round(255*(*CLUT)[index+0]),
           (int)round(255*(*CLUT)[index+1]),
           (int)round(255*(*CLUT)[index+2]));
