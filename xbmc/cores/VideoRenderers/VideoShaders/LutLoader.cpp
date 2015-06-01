@@ -114,14 +114,14 @@ int loadLUT(unsigned flags,
 
 #define videoToPC(x) ( ba::clamp((((x)*255)-16)/219,0,1) )
 #define PCToVideo(x) ( (((x)*219)+16)/255 )
-    for (int rIndex=0; rIndex<LUT_RESOLUTION; rIndex++) {
+    for (int bIndex=0; bIndex<LUT_RESOLUTION; bIndex++) {
       for (int gIndex=0; gIndex<LUT_RESOLUTION; gIndex++) {
-        for (int bIndex=0; bIndex<LUT_RESOLUTION; bIndex++) {
-          input[bIndex*3+0] = videoToPC(rIndex / (LUT_RESOLUTION-1.0));
-          input[bIndex*3+1] = videoToPC(gIndex / (LUT_RESOLUTION-1.0));
-          input[bIndex*3+2] = videoToPC(bIndex / (LUT_RESOLUTION-1.0));
+        for (int rIndex=0; rIndex<LUT_RESOLUTION; rIndex++) {
+          input[rIndex*3+0] = videoToPC(rIndex / (LUT_RESOLUTION-1.0));
+          input[rIndex*3+1] = videoToPC(gIndex / (LUT_RESOLUTION-1.0));
+          input[rIndex*3+2] = videoToPC(bIndex / (LUT_RESOLUTION-1.0));
         }
-        int index = (rIndex*LUT_RESOLUTION*LUT_RESOLUTION + gIndex*LUT_RESOLUTION)*3;
+        int index = (bIndex*LUT_RESOLUTION*LUT_RESOLUTION + gIndex*LUT_RESOLUTION)*3;
         cmsDoTransform(hTransform, input, output, LUT_RESOLUTION);
         for (int i=0; i<LUT_RESOLUTION*3; i++) {
           (*CLUT)[index+i] = PCToVideo(output[i]);
