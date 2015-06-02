@@ -53,7 +53,7 @@ int loadLUT(unsigned flags,
     float **CLUT,
     int *CLUTsize)
 {
-    const std::string profileBase = "special://profile/display/default/";
+    const std::string profileBase = "special://profile/display/";
     std::string profileName = "rec709.icc";
     cmsHPROFILE hProfile;
     cmsHTRANSFORM hTransform;
