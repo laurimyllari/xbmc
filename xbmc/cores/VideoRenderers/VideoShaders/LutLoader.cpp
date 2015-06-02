@@ -15,6 +15,7 @@
 
 namespace ba = boost::algorithm;
 
+// FIXME: rename to source profile; allow choosing wp, primaries and gamma
 cmsHPROFILE gammaprofile(cmsCIEXYZ blackpoint, float brightness, float contrast)
 {
   float gamma = 2.4;
@@ -53,6 +54,19 @@ int loadLUT(unsigned flags,
     float **CLUT,
     int *CLUTsize)
 {
+
+    // TODO: profile selection logic
+    //
+    // - select colorspace based on video flags (see CONF_FLAGS_COLPRI_MASK)
+    // - allow user to override colorspace per video?
+    // - allow user to select gamma?
+    // - look for matching 3dlut
+    // - look for matching icc device link
+    // - look for a display profile
+    // - fall back to an identity matrix and a warning message?
+
+    // TODO: move icc file handling to a separate function
+
     const std::string profileBase = "special://profile/display/";
     std::string profileName = "rec709.icc";
     cmsHPROFILE hProfile;
