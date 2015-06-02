@@ -112,8 +112,10 @@ int loadLUT(unsigned flags,
     cmsFloat32Number input[3*LUT_RESOLUTION];
     cmsFloat32Number output[3*LUT_RESOLUTION];
 
-#define videoToPC(x) ( ba::clamp((((x)*255)-16)/219,0,1) )
-#define PCToVideo(x) ( (((x)*219)+16)/255 )
+// #define videoToPC(x) ( ba::clamp((((x)*255)-16)/219,0,1) )
+// #define PCToVideo(x) ( (((x)*219)+16)/255 )
+#define videoToPC(x) ( x )
+#define PCToVideo(x) ( x )
     for (int bIndex=0; bIndex<LUT_RESOLUTION; bIndex++) {
       for (int gIndex=0; gIndex<LUT_RESOLUTION; gIndex++) {
         for (int rIndex=0; rIndex<LUT_RESOLUTION; rIndex++) {
@@ -130,7 +132,7 @@ int loadLUT(unsigned flags,
     }
 
 #if 1 // debug 3dLUT greyscale
-    for (int y=0; y<LUT_RESOLUTION; y+=4)
+    for (int y=0; y<LUT_RESOLUTION; y+=1)
     {
       int index = 3*(y*LUT_RESOLUTION*LUT_RESOLUTION + y*LUT_RESOLUTION + y);
       CLog::Log(LOGDEBUG, "  %d (%d): %d %d %d\n",
