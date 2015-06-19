@@ -3,15 +3,15 @@
 #include "filesystem/SpecialProtocol.h"
 
 #include <boost/algorithm/clamp.hpp>
+#include <math.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "LutLoader.h"
 
 #if defined(HAVE_LCMS2)
 #include "lcms2.h"
 #include "lcms2_plugin.h"
-#include <math.h>
-#include <stdlib.h>
-#include <string.h>
 
 namespace ba = boost::algorithm;
 
@@ -50,37 +50,20 @@ cmsHPROFILE gammaprofile(cmsCIEXYZ blackpoint, float brightness, float contrast)
   return hProfile;
 }
 
-int loadLUT(unsigned flags,
-    float **CLUT,
-    int *CLUTsize)
+bool loadICC(const std::string filename, float **CLUT, int *CLUTsize)
 {
-
-    // TODO: profile selection logic
-    //
-    // - select colorspace based on video flags (see CONF_FLAGS_COLPRI_MASK)
-    // - allow user to override colorspace per video?
-    // - allow user to select gamma?
-    // - look for matching 3dlut
-    // - look for matching icc device link
-    // - look for a display profile
-    // - fall back to an identity matrix and a warning message?
-
-    // TODO: move icc file handling to a separate function
-
-    const std::string profileBase = "special://profile/display/";
-    std::string profileName = "rec709.icc";
     cmsHPROFILE hProfile;
     cmsHTRANSFORM hTransform;
     int lutsamples;
 
     // FIXME - device link filename based on colorspace in flags
     hProfile = cmsOpenProfileFromFile(
-        CSpecialProtocol::TranslatePath(profileBase + profileName).c_str(),
+        filename.c_str(),
         "r");
     if (!hProfile)
     {
       CLog::Log(LOGERROR, "ICC profile not found\n");
-      return 1;
+      return false;
     }
 
     if (cmsGetDeviceClass(hProfile) == cmsSigDisplayClass)
@@ -114,7 +97,7 @@ int loadLUT(unsigned flags,
     else
     {
       CLog::Log(LOGERROR, "unsupported profile type\n");
-      return 1;
+      return false;
     }
 
 #define LUT_RESOLUTION 65
@@ -158,7 +141,40 @@ int loadLUT(unsigned flags,
 #endif
 
     cmsCloseProfile(hProfile);
+    return true;
+}
+
+#else
+
+bool loadICC(const std::string filename, float **CLUT, int *CLUTsize)
+{
+    CLog::Log(LOGERROR, "No ICC profile support (requires lcms2)\n");
+    return false;
+}
+#endif
+
+int loadLUT(unsigned flags,
+    float **CLUT,
+    int *CLUTsize)
+{
+
+    // TODO: profile selection logic
+    //
+    // - select colorspace based on video flags (see CONF_FLAGS_COLPRI_MASK)
+    // - allow user to override colorspace per video?
+    // - allow user to select gamma?
+    // - look for matching 3dlut
+    // - look for matching icc device link
+    // - look for a display profile
+    // - fall back to an identity matrix and a warning message?
+
+    // TODO: move icc file handling to a separate function
+
+    const std::string profileBase = "special://profile/display/";
+    std::string profileName = "rec709.icc";
+
+    if (!loadICC(CSpecialProtocol::TranslatePath(profileBase + profileName), CLUT, CLUTsize))
+        return 1;
 
     return 0;
 }
-#endif
