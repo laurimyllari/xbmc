@@ -153,6 +153,44 @@ bool loadICC(const std::string filename, float **CLUT, int *CLUTsize)
 }
 #endif
 
+struct H3DLUT
+{
+    char signature[4];         // file signature; must be: '3DLT'
+    long fileVersion;          // file format version number (currently "1")
+    char programName[32];      // name of the program that created the file
+    long long programVersion;  // version number of the program that created the file
+    long inputBitDepth[3];     // input bit depth per component (Y,Cb,Cr or R,G,B)
+    long inputColorEncoding;   // input color encoding standard
+    long outputBitDepth;       // output bit depth for all components (valid values are 8, 16 and 32)
+    long outputColorEncoding;  // output color encoding standard
+    long parametersFileOffset; // number of bytes between the beginning of the file and array parametersData
+    long parametersSize;       // size in bytes of the array parametersData
+    long lutFileOffset;        // number of bytes between the beginning of the file and array lutData
+    long lutCompressionMethod; // type of compression used if any (0 = none, ...)
+    long lutCompressedSize;    // size in bytes of the array lutData inside the file, whether compressed or not
+    long lutUncompressedSize;  // true size in bytes of the array lutData when in memory for usage (outside the file)
+    // This header is followed by the char array 'parametersData', of length 'parametersSize',
+    // and by the array 'lutDataxx', of length 'lutCompressedSize'.
+};
+
+bool load3DLUT(const std::string filename, float **CLUT, int *CLUTsize)
+{
+    struct H3DLUT header;
+    CFile lutFile;
+
+    if (!lutFile.Open(filename))
+    {
+        CLog::Log(LOGERROR, "%s: Could not open 3DLUT file: %s", __FUNCTION__, filename.c_str());
+        return false;
+    }
+
+    if (lutFile.Read(&header, sizeof(header)) < sizeof(header))
+    {
+        CLog::Log(LOGERROR, "%s: Could not read 3DLUT header: %s", __FUNCTION__, filename.c_str());
+        return false;
+    }
+}
+
 int loadLUT(unsigned flags,
     float **CLUT,
     int *CLUTsize)
