@@ -1,6 +1,7 @@
 #include "config.h"
 #include "utils/log.h"
 #include "filesystem/SpecialProtocol.h"
+#include "filesystem/File.h"
 
 #include <boost/algorithm/clamp.hpp>
 #include <math.h>
@@ -8,6 +9,8 @@
 #include <string.h>
 
 #include "LutLoader.h"
+
+using namespace XFILE;
 
 #if defined(HAVE_LCMS2)
 #include "lcms2.h"
@@ -156,19 +159,19 @@ bool loadICC(const std::string filename, float **CLUT, int *CLUTsize)
 struct H3DLUT
 {
     char signature[4];         // file signature; must be: '3DLT'
-    long fileVersion;          // file format version number (currently "1")
+    uint32_t fileVersion;          // file format version number (currently "1")
     char programName[32];      // name of the program that created the file
-    long long programVersion;  // version number of the program that created the file
-    long inputBitDepth[3];     // input bit depth per component (Y,Cb,Cr or R,G,B)
-    long inputColorEncoding;   // input color encoding standard
-    long outputBitDepth;       // output bit depth for all components (valid values are 8, 16 and 32)
-    long outputColorEncoding;  // output color encoding standard
-    long parametersFileOffset; // number of bytes between the beginning of the file and array parametersData
-    long parametersSize;       // size in bytes of the array parametersData
-    long lutFileOffset;        // number of bytes between the beginning of the file and array lutData
-    long lutCompressionMethod; // type of compression used if any (0 = none, ...)
-    long lutCompressedSize;    // size in bytes of the array lutData inside the file, whether compressed or not
-    long lutUncompressedSize;  // true size in bytes of the array lutData when in memory for usage (outside the file)
+    uint64_t programVersion;  // version number of the program that created the file
+    uint32_t inputBitDepth[3];     // input bit depth per component (Y,Cb,Cr or R,G,B)
+    uint32_t inputColorEncoding;   // input color encoding standard
+    uint32_t outputBitDepth;       // output bit depth for all components (valid values are 8, 16 and 32)
+    uint32_t outputColorEncoding;  // output color encoding standard
+    uint32_t parametersFileOffset; // number of bytes between the beginning of the file and array parametersData
+    uint32_t parametersSize;       // size in bytes of the array parametersData
+    uint32_t lutFileOffset;        // number of bytes between the beginning of the file and array lutData
+    uint32_t lutCompressionMethod; // type of compression used if any (0 = none, ...)
+    uint32_t lutCompressedSize;    // size in bytes of the array lutData inside the file, whether compressed or not
+    uint32_t lutUncompressedSize;  // true size in bytes of the array lutData when in memory for usage (outside the file)
     // This header is followed by the char array 'parametersData', of length 'parametersSize',
     // and by the array 'lutDataxx', of length 'lutCompressedSize'.
 };
@@ -189,6 +192,25 @@ bool load3DLUT(const std::string filename, float **CLUT, int *CLUTsize)
         CLog::Log(LOGERROR, "%s: Could not read 3DLUT header: %s", __FUNCTION__, filename.c_str());
         return false;
     }
+
+    if ( !(header.signature[0]=='3'
+                && header.signature[1]=='D'
+                && header.signature[2]=='L'
+                && header.signature[3]=='T') )
+    {
+        CLog::Log(LOGERROR, "%s: Not a 3DLUT file: %s", __FUNCTION__, filename.c_str());
+        return false;
+    }
+
+    if ( header.fileVersion != 1 || header.lutCompressionMethod != 0 )
+    {
+        CLog::Log(LOGERROR, "%s: Unsupported 3DLUT file: %s", __FUNCTION__, filename.c_str());
+        return false;
+    }
+
+    CLog::Log(LOGNOTICE, "%s: 3DLUT file looks ok so far: %s", __FUNCTION__, filename.c_str());
+
+    return false; // FIXME: false until implemented
 }
 
 int loadLUT(unsigned flags,
@@ -209,10 +231,13 @@ int loadLUT(unsigned flags,
     // TODO: move icc file handling to a separate function
 
     const std::string profileBase = "special://profile/display/";
-    std::string profileName = "rec709.icc";
+    std::string profileName = "rec709";
 
-    if (!loadICC(CSpecialProtocol::TranslatePath(profileBase + profileName), CLUT, CLUTsize))
-        return 1;
+    if (load3DLUT(CSpecialProtocol::TranslatePath(profileBase + profileName + ".3dlut"), CLUT, CLUTsize))
+        return 0;
 
-    return 0;
+    if (loadICC(CSpecialProtocol::TranslatePath(profileBase + profileName + ".icc"), CLUT, CLUTsize))
+        return 0;
+
+    return 1;
 }
