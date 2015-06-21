@@ -202,7 +202,10 @@ bool load3DLUT(const std::string filename, float **CLUT, int *CLUTsize)
         return false;
     }
 
-    if ( header.fileVersion != 1 || header.lutCompressionMethod != 0 )
+    if ( header.fileVersion != 1
+            || header.lutCompressionMethod != 0
+            || header.inputColorEncoding != 0
+            || header.outputColorEncoding != 0 )
     {
         CLog::Log(LOGERROR, "%s: Unsupported 3DLUT file: %s", __FUNCTION__, filename.c_str());
         return false;
@@ -210,7 +213,50 @@ bool load3DLUT(const std::string filename, float **CLUT, int *CLUTsize)
 
     CLog::Log(LOGNOTICE, "%s: 3DLUT file looks ok so far: %s", __FUNCTION__, filename.c_str());
 
-    return false; // FIXME: false until implemented
+    int rSize = 1 << header.inputBitDepth[0];
+    int gSize = 1 << header.inputBitDepth[1];
+    int bSize = 1 << header.inputBitDepth[2];
+
+    if ( !((rSize == gSize) && (rSize == bSize)) )
+    {
+        CLog::Log(LOGERROR, "%s: Different channel resolutions unsupported: %s", __FUNCTION__, filename.c_str());
+        return false;
+    }
+
+    int lutsamples = rSize * gSize * bSize * 3;
+    *CLUTsize = rSize; // TODO: assumes cube
+    *CLUT = (float*)malloc(lutsamples * sizeof(float));
+
+    lutFile.Seek(header.lutFileOffset, SEEK_SET);
+
+    for (int rIndex=0; rIndex<rSize; rIndex++) {
+        for (int gIndex=0; gIndex<gSize; gIndex++) {
+            uint16_t input[bSize*3];
+            lutFile.Read(input, 3*bSize*sizeof(uint16_t));
+            int index = (rIndex + gIndex*rSize)*3;
+            for (int bIndex=0; bIndex<bSize; bIndex++) {
+                (*CLUT)[index+bIndex*rSize*gSize*3+0] = input[bIndex*3+2]/65535.0;
+                (*CLUT)[index+bIndex*rSize*gSize*3+1] = input[bIndex*3+1]/65535.0;
+                (*CLUT)[index+bIndex*rSize*gSize*3+2] = input[bIndex*3+0]/65535.0;
+            }
+        }
+    }
+
+    lutFile.Close();
+
+#if 1 // debug 3dLUT greyscale
+    for (int y=0; y<rSize; y+=1)
+    {
+      int index = 3*(y*rSize*rSize + y*rSize + y);
+      CLog::Log(LOGDEBUG, "  %d (%d): %d %d %d\n",
+          (int)round(y * 255 / (rSize-1.0)), y,
+          (int)round(255*(*CLUT)[index+0]),
+          (int)round(255*(*CLUT)[index+1]),
+          (int)round(255*(*CLUT)[index+2]));
+    }
+#endif
+
+    return true; // FIXME: false until implemented
 }
 
 int loadLUT(unsigned flags,
