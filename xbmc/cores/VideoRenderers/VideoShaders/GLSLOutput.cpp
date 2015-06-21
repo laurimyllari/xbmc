@@ -135,6 +135,7 @@ void GLSLOutput::OnCompiledAndLinked(GLuint programHandle)
 
     // load 3DLUT data
     glTexImage3D(GL_TEXTURE_3D, 0, GL_RGB32F, CLUTsize, CLUTsize, CLUTsize, 0, GL_RGB, GL_FLOAT, CLUT);
+    free(CLUT);
   }
 
   glActiveTexture(GL_TEXTURE0);
