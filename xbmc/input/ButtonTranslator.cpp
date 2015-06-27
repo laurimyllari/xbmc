@@ -351,6 +351,7 @@ static const ActionMapping windows[] =
         {"addonsettings"            , WINDOW_DIALOG_ADDON_SETTINGS},
         {"visualisationsettings"    , WINDOW_DIALOG_ADDON_SETTINGS}, // backward compat
         {"visualisationpresetlist"  , WINDOW_DIALOG_VIS_PRESET_LIST},
+        {"osdcmssettings"           , WINDOW_DIALOG_CMS_OSD_SETTINGS},
         {"osdvideosettings"         , WINDOW_DIALOG_VIDEO_OSD_SETTINGS},
         {"osdaudiosettings"         , WINDOW_DIALOG_AUDIO_OSD_SETTINGS},
         {"videobookmarks"           , WINDOW_DIALOG_VIDEO_BOOKMARKS},

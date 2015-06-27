@@ -43,6 +43,7 @@ void CGUIDialogVideoOSD::FrameMove()
   {
     // check for movement of mouse or a submenu open
     if (CInputManager::Get().IsMouseActive()
+                           || g_windowManager.IsWindowActive(WINDOW_DIALOG_CMS_OSD_SETTINGS)
                            || g_windowManager.IsWindowActive(WINDOW_DIALOG_AUDIO_OSD_SETTINGS)
                            || g_windowManager.IsWindowActive(WINDOW_DIALOG_VIDEO_OSD_SETTINGS)
                            || g_windowManager.IsWindowActive(WINDOW_DIALOG_VIDEO_BOOKMARKS)

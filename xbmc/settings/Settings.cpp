@@ -247,6 +247,7 @@ void CSettings::Uninitialize()
   m_settingsManager->UnregisterSettingOptionsFiller("screens");
   m_settingsManager->UnregisterSettingOptionsFiller("stereoscopicmodes");
   m_settingsManager->UnregisterSettingOptionsFiller("preferedstereoscopicviewmodes");
+  m_settingsManager->UnregisterSettingOptionsFiller("cmsmodes");
   m_settingsManager->UnregisterSettingOptionsFiller("monitors");
   m_settingsManager->UnregisterSettingOptionsFiller("videoseeksteps");
   m_settingsManager->UnregisterSettingOptionsFiller("shutdownstates");
@@ -612,6 +613,7 @@ void CSettings::InitializeOptionFillers()
   m_settingsManager->RegisterSettingOptionsFiller("screens", CDisplaySettings::SettingOptionsScreensFiller);
   m_settingsManager->RegisterSettingOptionsFiller("stereoscopicmodes", CDisplaySettings::SettingOptionsStereoscopicModesFiller);
   m_settingsManager->RegisterSettingOptionsFiller("preferedstereoscopicviewmodes", CDisplaySettings::SettingOptionsPreferredStereoscopicViewModesFiller);
+  m_settingsManager->RegisterSettingOptionsFiller("cmsmodes", CDisplaySettings::SettingOptionsCmsModesFiller);
   m_settingsManager->RegisterSettingOptionsFiller("monitors", CDisplaySettings::SettingOptionsMonitorsFiller);
   m_settingsManager->RegisterSettingOptionsFiller("videoseeksteps", CSeekHandler::SettingOptionsSeekStepsFiller);
   m_settingsManager->RegisterSettingOptionsFiller("shutdownstates", CPowerManager::SettingOptionsShutdownStatesFiller);
@@ -710,6 +712,8 @@ void CSettings::InitializeISettingCallbacks()
   settingSet.insert("videoscreen.vsync");
   settingSet.insert("videoscreen.monitor");
   settingSet.insert("videoscreen.preferedstereoscopicmode");
+  settingSet.insert("videoscreen.cms3dlut");
+  settingSet.insert("videoscreen.displayprofile");
   m_settingsManager->RegisterCallback(&CDisplaySettings::Get(), settingSet);
   
   settingSet.clear();

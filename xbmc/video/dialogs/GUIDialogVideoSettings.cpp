@@ -19,6 +19,7 @@
  */
 
 #include "system.h"
+#include "FileItem.h"
 #include "GUIDialogVideoSettings.h"
 #include "GUIPassword.h"
 #include "addons/Skin.h"
@@ -26,6 +27,8 @@
 #include "cores/VideoRenderers/RenderManager.h"
 #endif
 #include "dialogs/GUIDialogYesNo.h"
+#include "filesystem/Directory.h"
+#include "filesystem/File.h"
 #include "guilib/GUIWindowManager.h"
 #include "profiles/ProfilesManager.h"
 #include "settings/MediaSettings.h"
@@ -34,6 +37,8 @@
 #include "settings/lib/SettingsManager.h"
 #include "utils/log.h"
 #include "video/VideoDatabase.h"
+
+#include <vector>
 
 #define SETTING_VIDEO_VIEW_MODE           "video.viewmode"
 #define SETTING_VIDEO_ZOOM                "video.zoom"
@@ -217,6 +222,12 @@ void CGUIDialogVideoSettings::InitializeSettings()
   }
   CSettingGroup *groupStereoscopic = AddGroup(category);
   if (groupStereoscopic == NULL)
+  {
+    CLog::Log(LOGERROR, "CGUIDialogVideoSettings: unable to setup settings");
+    return;
+  }
+  CSettingGroup *groupColorManagement = AddGroup(category);
+  if (groupColorManagement == NULL)
   {
     CLog::Log(LOGERROR, "CGUIDialogVideoSettings: unable to setup settings");
     return;

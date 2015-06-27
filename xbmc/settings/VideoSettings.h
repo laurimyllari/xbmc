@@ -26,6 +26,8 @@
 
 #pragma once
 
+#include <string>
+
 enum EDEINTERLACEMODE
 {
   VS_DEINTERLACEMODE_OFF=0,

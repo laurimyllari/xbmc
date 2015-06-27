@@ -80,6 +80,8 @@ public:
   virtual bool UseDithering();
   virtual unsigned DitherDepth();
 
+  virtual bool Use3DLUT();
+
   virtual bool Minimize() { return false; }
   virtual bool Restore() { return false; }
   virtual bool Hide() { return false; }

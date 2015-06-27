@@ -272,6 +272,17 @@ unsigned CWinSystemBase::DitherDepth()
 #endif
 }
 
+bool CWinSystemBase::Use3DLUT()
+{
+#if defined(HAS_GL)
+  static CSettingInt* setting = (CSettingInt*)CSettings::Get().GetSetting("videoscreen.colormanagement");
+  // FIXME: check if the 3dlut file or display profile exists
+  return setting->GetValue() > 0;
+#else
+  return false;
+#endif
+}
+
 std::string CWinSystemBase::GetClipboardText(void)
 {
   return "";

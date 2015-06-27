@@ -54,7 +54,7 @@ GLSLOutput::GLSLOutput(int texunit, unsigned videoflags)
   m_dither = g_Windowing.UseDithering();
   m_ditherDepth = g_Windowing.DitherDepth();
   m_fullRange = !g_Windowing.UseLimitedColor();
-  m_3DLUT = true; // g_Windowing.Use3DLUT();
+  m_3DLUT = g_Windowing.Use3DLUT();
 }
 
 std::string GLSLOutput::GetDefines()
