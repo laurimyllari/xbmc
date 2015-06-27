@@ -270,6 +270,17 @@ unsigned CWinSystemBase::DitherDepth()
 #endif
 }
 
+bool CWinSystemBase::Use3DLUT()
+{
+#if defined(HAS_GL)
+  static CSettingBool* setting = (CSettingBool*)CSettings::Get().GetSetting("videoscreen.3dlutcalibration");
+  // FIXME: check if the 3dlut file or display profile exists
+  return setting->GetValue();
+#else
+  return false;
+#endif
+}
+
 std::string CWinSystemBase::GetClipboardText(void)
 {
   return "";

@@ -2534,6 +2534,12 @@
           </dependencies>
           <control type="spinner" format="integer" />
         </setting>
+        <setting id="videoscreen.3dlutcalibration" type="boolean" label="36045" help="36552">
+          <requirement>HAS_GL</requirement>
+          <level>3</level>
+          <default>false</default>
+          <control type="toggle" />
+        </setting>
       </group>
     </category>
     <category id="audiooutput" label="772" help="36360">
