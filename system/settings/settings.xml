@@ -2534,11 +2534,20 @@
           </dependencies>
           <control type="spinner" format="integer" />
         </setting>
-        <setting id="videoscreen.3dlutcalibration" type="boolean" label="36045" help="36552">
+        <setting id="videoscreen.lutcalibration" type="boolean" label="36045" help="36552">
           <requirement>HAS_GL</requirement>
           <level>3</level>
           <default>false</default>
           <control type="toggle" />
+        </setting>
+        <setting id="videoscreen.lutpath" type="path" label="36046" help="36553">
+          <requirement>HAS_GL</requirement>
+          <level>3</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <control type="button" format="path" />
         </setting>
       </group>
     </category>
