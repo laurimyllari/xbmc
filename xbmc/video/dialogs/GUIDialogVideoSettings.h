@@ -43,4 +43,9 @@ protected:
 
 private:
   bool m_viewModeChanged;
+  static void Cms3dLutsFiller(
+    const CSetting *setting,
+    std::vector< std::pair<std::string, std::string> > &list,
+    std::string &current,
+    void *data);
 };

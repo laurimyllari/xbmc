@@ -130,6 +130,10 @@ bool CMediaSettings::Load(const TiXmlNode *settings)
     XMLUtils::GetBoolean(pElement, "nonlinstretch", m_defaultVideoSettings.m_CustomNonLinStretch);
     if (!XMLUtils::GetInt(pElement, "stereomode", m_defaultVideoSettings.m_StereoMode))
       m_defaultVideoSettings.m_StereoMode = 0;
+    if (!XMLUtils::GetInt(pElement, "cmsmode", m_defaultVideoSettings.m_CmsMode))
+      m_defaultVideoSettings.m_CmsMode = CmsModeOff;
+    if (!XMLUtils::GetString(pElement, "cms3dlut", m_defaultVideoSettings.m_Cms3dLut))
+      m_defaultVideoSettings.m_Cms3dLut = "rec709.3dlut";
 
     m_defaultVideoSettings.m_SubtitleCached = false;
   }
@@ -213,6 +217,8 @@ bool CMediaSettings::Save(TiXmlNode *settings) const
   XMLUtils::SetFloat(pNode, "subtitledelay", m_defaultVideoSettings.m_SubtitleDelay);
   XMLUtils::SetBoolean(pNode, "nonlinstretch", m_defaultVideoSettings.m_CustomNonLinStretch);
   XMLUtils::SetInt(pNode, "stereomode", m_defaultVideoSettings.m_StereoMode);
+  XMLUtils::SetInt(pNode, "cmsmode", m_defaultVideoSettings.m_CmsMode);
+  XMLUtils::SetString(pNode, "cms3dlut", m_defaultVideoSettings.m_Cms3dLut);
 
   // mymusic
   pNode = settings->FirstChild("mymusic");

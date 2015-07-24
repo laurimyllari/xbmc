@@ -26,6 +26,8 @@
 
 #pragma once
 
+#include <string>
+
 enum EDEINTERLACEMODE
 {
   VS_DEINTERLACEMODE_OFF=0,
@@ -115,6 +117,12 @@ typedef enum {
   ViewModeStretch16x9Nonlin
 } ViewMode;
 
+typedef enum {
+  CmsModeOff  = 0,
+  CmsMode3dLut,
+  CmsModeProfile
+} CmsMode;
+
 class CVideoSettings
 {
 public:
@@ -148,6 +156,8 @@ public:
   int m_ResumeTime;
   int m_StereoMode;
   bool m_StereoInvert;
+  int m_CmsMode;
+  std::string m_Cms3dLut;
 
 private:
 };

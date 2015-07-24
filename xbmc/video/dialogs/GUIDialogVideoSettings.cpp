@@ -19,6 +19,7 @@
  */
 
 #include "system.h"
+#include "FileItem.h"
 #include "GUIDialogVideoSettings.h"
 #include "GUIPassword.h"
 #include "addons/Skin.h"
@@ -26,6 +27,8 @@
 #include "cores/VideoRenderers/RenderManager.h"
 #endif
 #include "dialogs/GUIDialogYesNo.h"
+#include "filesystem/Directory.h"
+#include "filesystem/File.h"
 #include "guilib/GUIWindowManager.h"
 #include "profiles/ProfilesManager.h"
 #include "settings/MediaSettings.h"
@@ -35,6 +38,8 @@
 #include "utils/log.h"
 #include "video/VideoDatabase.h"
 #include "utils/Variant.h"
+
+#include <vector>
 
 #define SETTING_VIDEO_VIEW_MODE           "video.viewmode"
 #define SETTING_VIDEO_ZOOM                "video.zoom"
@@ -55,6 +60,9 @@
 
 #define SETTING_VIDEO_STEREOSCOPICMODE    "video.stereoscopicmode"
 #define SETTING_VIDEO_STEREOSCOPICINVERT  "video.stereoscopicinvert"
+
+#define SETTING_VIDEO_CMSMODE             "video.cmsmode"
+#define SETTING_VIDEO_CMS3DLUT            "video.cms3dlut"
 
 #define SETTING_VIDEO_MAKE_DEFAULT        "video.save"
 #define SETTING_VIDEO_CALIBRATION         "video.calibration"
@@ -138,6 +146,8 @@ void CGUIDialogVideoSettings::OnSettingChanged(const CSetting *setting)
     videoSettings.m_StereoMode = static_cast<const CSettingInt*>(setting)->GetValue();
   else if (settingId == SETTING_VIDEO_STEREOSCOPICINVERT)
     videoSettings.m_StereoInvert = static_cast<const CSettingBool*>(setting)->GetValue();
+  else if (settingId == SETTING_VIDEO_CMSMODE)
+    videoSettings.m_CmsMode = static_cast<const CSettingInt*>(setting)->GetValue();
 }
 
 void CGUIDialogVideoSettings::OnSettingAction(const CSetting *setting)
@@ -216,6 +226,12 @@ void CGUIDialogVideoSettings::InitializeSettings()
   }
   CSettingGroup *groupStereoscopic = AddGroup(category);
   if (groupStereoscopic == NULL)
+  {
+    CLog::Log(LOGERROR, "CGUIDialogVideoSettings: unable to setup settings");
+    return;
+  }
+  CSettingGroup *groupColorManagement = AddGroup(category);
+  if (groupColorManagement == NULL)
   {
     CLog::Log(LOGERROR, "CGUIDialogVideoSettings: unable to setup settings");
     return;
@@ -359,7 +375,35 @@ void CGUIDialogVideoSettings::InitializeSettings()
   AddSpinner(groupStereoscopic, SETTING_VIDEO_STEREOSCOPICMODE  , 36535, 0, videoSettings.m_StereoMode, entries);
   AddToggle(groupStereoscopic, SETTING_VIDEO_STEREOSCOPICINVERT, 36536, 0, videoSettings.m_StereoInvert);
 
+  // color management settings
+  entries.clear();
+  entries.push_back(std::make_pair(16039, CmsModeOff));
+  entries.push_back(std::make_pair(16042, CmsMode3dLut));
+#ifdef HAVE_LCMS2
+  entries.push_back(std::make_pair(16043, CmsModeProfile));
+#endif
+  AddSpinner(groupColorManagement, SETTING_VIDEO_CMSMODE, 36554, 0, videoSettings.m_CmsMode, entries);
+  AddList(groupColorManagement, SETTING_VIDEO_CMS3DLUT, 36555, 0, videoSettings.m_Cms3dLut, Cms3dLutsFiller, 36555);
+
   // general settings
   AddButton(groupSaveAsDefault, SETTING_VIDEO_MAKE_DEFAULT, 12376, 0);
   AddButton(groupSaveAsDefault, SETTING_VIDEO_CALIBRATION, 214, 0);
+}
+
+void CGUIDialogVideoSettings::Cms3dLutsFiller(
+    const CSetting *setting,
+    std::vector< std::pair<std::string, std::string> > &list,
+    std::string &current,
+    void *data)
+{
+  // get 3dLut directory from settings
+  CFileItemList items;
+
+  // list .3dlut files
+  XFILE::CDirectory::GetDirectory(CSettings::Get().GetString("videoscreen.lutpath"), items, ".3dlut");
+
+  for (int i = 0; i < items.Size(); i++)
+  {
+    list.push_back(make_pair(items[i]->GetLabel(), items[i]->GetLabel()));
+  }
 }
