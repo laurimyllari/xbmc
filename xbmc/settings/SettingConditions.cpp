@@ -266,6 +266,9 @@ void CSettingConditions::Initialize()
   m_simpleConditions.insert("has_dx");
   m_simpleConditions.insert("hasdxva2");
 #endif
+#ifdef HAVE_LCMS2
+  m_simpleConditions.insert("have_lcms2");
+#endif
 
   if (g_application.IsStandAlone())
     m_simpleConditions.insert("isstandalone");

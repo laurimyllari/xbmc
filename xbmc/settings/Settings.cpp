@@ -711,6 +711,7 @@ void CSettings::InitializeISettingCallbacks()
   settingSet.insert("videoscreen.vsync");
   settingSet.insert("videoscreen.monitor");
   settingSet.insert("videoscreen.preferedstereoscopicmode");
+  settingSet.insert("videoscreen.displayprofile");
   m_settingsManager->RegisterCallback(&CDisplaySettings::Get(), settingSet);
   
   settingSet.clear();

@@ -273,7 +273,7 @@ unsigned CWinSystemBase::DitherDepth()
 bool CWinSystemBase::Use3DLUT()
 {
 #if defined(HAS_GL)
-  static CSettingBool* setting = (CSettingBool*)CSettings::Get().GetSetting("videoscreen.lutcalibration");
+  static CSettingBool* setting = (CSettingBool*)CSettings::Get().GetSetting("videoscreen.colormanagement");
   // FIXME: check if the 3dlut file or display profile exists
   return setting->GetValue();
 #else

@@ -41,6 +41,7 @@ public:
   virtual bool Save(TiXmlNode *settings) const;
   virtual void Clear();
 
+  virtual void OnSettingAction(const CSetting *setting);
   virtual bool OnSettingChanging(const CSetting *setting);
   virtual bool OnSettingUpdate(CSetting* &setting, const char *oldSettingId, const TiXmlNode *oldSettingNode);
 

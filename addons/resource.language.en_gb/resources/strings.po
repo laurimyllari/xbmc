@@ -6392,7 +6392,12 @@ msgctxt "#13423"
 msgid "Remember for this path"
 msgstr ""
 
-#empty string with id 13424
+#: xbmc/video/dialogs/GUIDialogCMSSettings.cpp
+msgctxt "#13424"
+msgid "Color management settings"
+msgstr ""
+
+#empty string with id 13425
 
 #: system/settings/settings.xml
 msgctxt "#13425"
@@ -16576,17 +16581,16 @@ msgctxt "#36551"
 msgid "Eliminate banding caused by RGB level conversion or other processing by adding a small amount of noise to the picture. This can be disabled for slower systems, or when Kodi is set to limited range RGB output and no video processing is needed."
 msgstr ""
 
-# FIXME: this setting can be replaced with ICC display profile selection
-#. Description of setting "System -> Video output -> 3DLUT calibration" with label #36045
+#. Description of setting "System -> Video output -> ICC Profile" with label #36045
 #: system/settings/settings.xml
 msgctxt "#36552"
-msgid "Use a 3D lookup table to correct display response."
+msgid "ICC display profile for color management."
 msgstr ""
 
 #. Description of setting "System -> Video output -> 3DLUT path" with label #36046
 #: system/settings/settings.xml
 msgctxt "#36553"
-msgid "Location of the 3DLUT files. By default, rec709.3dlut will be used."
+msgid "Default 3D LUT for color management."
 msgstr ""
 
 #. label of a setting, allowing to specify the color management mode of a video
