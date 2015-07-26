@@ -1,7 +1,7 @@
 #include "config.h"
 #include "utils/log.h"
-#include "filesystem/SpecialProtocol.h"
 #include "filesystem/File.h"
+#include "settings/Settings.h"
 
 #include <boost/algorithm/clamp.hpp>
 #include <math.h>
@@ -71,7 +71,7 @@ bool loadICC(const std::string filename, float **CLUT, int *CLUTsize)
 
     if (cmsGetDeviceClass(hProfile) == cmsSigDisplayClass)
     {
-      CLog::Log(LOGDEBUG, "got display profile\n");
+      CLog::Log(LOGNOTICE, "got display profile: %s\n", filename.c_str());
       // check black point
       cmsCIEXYZ blackpoint = { 0, 0, 0};
       if (cmsDetectBlackPoint(&blackpoint, hProfile, INTENT_PERCEPTUAL, 0))
@@ -276,14 +276,18 @@ int loadLUT(unsigned flags,
 
     // TODO: move icc file handling to a separate function
 
-    const std::string profileBase = "special://profile/display/";
-    std::string profileName = "rec709";
+    int cmsMode = CSettings::Get().GetInt("videoscreen.colormanagement");
 
-    if (load3DLUT(CSpecialProtocol::TranslatePath(profileBase + profileName + ".3dlut"), CLUT, CLUTsize))
+    if (cmsMode == CMS_MODE_3DLUT)
+    {
+      if (load3DLUT(CSettings::Get().GetString("videoscreen.cms3dlut"), CLUT, CLUTsize))
+          return 0;
+    }
+    else if (cmsMode == CMS_MODE_PROFILE)
+    {
+      if (loadICC(CSettings::Get().GetString("videoscreen.displayprofile"), CLUT, CLUTsize))
         return 0;
-
-    if (loadICC(CSpecialProtocol::TranslatePath(profileBase + profileName + ".icc"), CLUT, CLUTsize))
-        return 0;
+    }
 
     return 1;
 }
