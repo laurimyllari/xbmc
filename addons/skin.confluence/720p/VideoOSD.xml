@@ -213,6 +213,18 @@
 				<ondown>1000</ondown>
 				<onclick>ActivateWindow(OSDVideoSettings)</onclick>
 			</control>
+			<control type="button" id="256">
+				<!-- FIXME: messes with the layout - playback controls move left -->
+				<width>55</width>
+				<height>55</height>
+				<label>13424</label>
+				<font>-</font>
+				<texturefocus>OSDCmsFO.png</texturefocus>
+				<texturenofocus>OSDCmsNF.png</texturenofocus>
+				<onup>1000</onup>
+				<ondown>1000</ondown>
+				<onclick>ActivateWindow(OSDCmsSettings)</onclick>
+			</control>
 			<control type="button" id="252">
 				<width>55</width>
 				<height>55</height>
