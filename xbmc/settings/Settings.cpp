@@ -62,6 +62,7 @@
 #include "pvr/PVRManager.h"
 #include "pvr/windows/GUIWindowPVRGuide.h"
 #include "settings/AdvancedSettings.h"
+#include "settings/CMSSettings.h"
 #include "settings/DisplaySettings.h"
 #include "settings/MediaSettings.h"
 #include "settings/MediaSourceSettings.h"
@@ -672,6 +673,7 @@ void CSettings::InitializeISubSettings()
 {
   // register ISubSettings implementations
   m_settingsManager->RegisterSubSettings(&g_application);
+  m_settingsManager->RegisterSubSettings(&CCMSSettings::Get());
   m_settingsManager->RegisterSubSettings(&CDisplaySettings::Get());
   m_settingsManager->RegisterSubSettings(&CMediaSettings::Get());
   m_settingsManager->RegisterSubSettings(&CSkinSettings::Get());
@@ -714,6 +716,10 @@ void CSettings::InitializeISettingCallbacks()
   settingSet.insert("videoscreen.displayprofile");
   m_settingsManager->RegisterCallback(&CDisplaySettings::Get(), settingSet);
   
+  settingSet.clear();
+  settingSet.insert("cms.cms3dlut");
+  m_settingsManager->RegisterCallback(&CCMSSettings::Get(), settingSet);
+
   settingSet.clear();
   settingSet.insert("videoplayer.seekdelay");
   settingSet.insert("videoplayer.seeksteps");

@@ -31,6 +31,12 @@
 
 class TiXmlNode;
 
+typedef enum {
+  CmsModeOff  = 0,
+  CmsMode3dLut,
+  CmsModeProfile
+} CmsMode;
+
 class CCMSSettings : public ISettingCallback, public ISubSettings,
                          public Observable
 {
@@ -39,9 +45,11 @@ public:
 
   virtual bool Load(const TiXmlNode *settings);
   virtual bool Save(TiXmlNode *settings) const;
-  virtual void Clear();
 
   virtual void OnSettingAction(const CSetting *setting);
+
+  int m_CmsMode;
+  std::string m_Cms3dLut;
 
 protected:
   CCMSSettings();

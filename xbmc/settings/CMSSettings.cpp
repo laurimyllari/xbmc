@@ -26,7 +26,7 @@
 
 #include <float.h>
 
-#include "DisplaySettings.h"
+#include "CMSSettings.h"
 #include "dialogs/GUIDialogFileBrowser.h"
 #include "dialogs/GUIDialogYesNo.h"
 #include "guilib/GraphicContext.h"
@@ -46,6 +46,8 @@
 
 CCMSSettings::CCMSSettings()
 {
+  m_CmsMode = CmsModeOff;
+  m_Cms3dLut = "";
 }
 
 CCMSSettings::~CCMSSettings()
@@ -62,6 +64,16 @@ bool CCMSSettings::Load(const TiXmlNode *settings)
   if (settings == NULL)
     return false;
 
+  CSingleLock lock(m_critical);
+  const TiXmlElement *pElement = settings->FirstChildElement("cms");
+  if (pElement != NULL)
+  {
+    if (!XMLUtils::GetInt(pElement, "cmsmode", m_CmsMode, CmsModeOff, CmsModeProfile))
+      m_CmsMode = CmsModeOff;
+    if (!XMLUtils::GetString(pElement, "cms3dlut", m_Cms3dLut))
+      m_Cms3dLut = "";
+  }
+
   return true;
 }
 
@@ -70,11 +82,17 @@ bool CCMSSettings::Save(TiXmlNode *settings) const
   if (settings == NULL)
     return false;
 
-  return true;
-}
+  CSingleLock lock(m_critical);
+  // default video settings
+  TiXmlElement cmsSettingsNode("cms");
+  TiXmlNode *pNode = settings->InsertEndChild(cmsSettingsNode);
+  if (pNode == NULL)
+    return false;
 
-void CCMSSettings::Clear()
-{
+  XMLUtils::SetInt(pNode, "cmsmode", m_CmsMode);
+  XMLUtils::SetString(pNode, "cms3dlut", m_Cms3dLut);
+
+  return true;
 }
 
 void CCMSSettings::OnSettingAction(const CSetting *setting)
@@ -83,7 +101,7 @@ void CCMSSettings::OnSettingAction(const CSetting *setting)
     return;
 
   const std::string &settingId = setting->GetId();
-  if (settingId == "cms.file3dlut")
+  if (settingId == "cms.cms3dlut")
   {
     std::string path = ((CSettingString*)setting)->GetValue();
     VECSOURCES shares;

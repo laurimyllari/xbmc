@@ -146,8 +146,8 @@ void CGUIDialogVideoSettings::OnSettingChanged(const CSetting *setting)
     videoSettings.m_StereoMode = static_cast<const CSettingInt*>(setting)->GetValue();
   else if (settingId == SETTING_VIDEO_STEREOSCOPICINVERT)
     videoSettings.m_StereoInvert = static_cast<const CSettingBool*>(setting)->GetValue();
-  else if (settingId == SETTING_VIDEO_CMSMODE)
-    videoSettings.m_CmsMode = static_cast<const CSettingInt*>(setting)->GetValue();
+//  else if (settingId == SETTING_VIDEO_CMSMODE)
+//    videoSettings.m_CmsMode = static_cast<const CSettingInt*>(setting)->GetValue();
 }
 
 void CGUIDialogVideoSettings::OnSettingAction(const CSetting *setting)
@@ -375,15 +375,15 @@ void CGUIDialogVideoSettings::InitializeSettings()
   AddSpinner(groupStereoscopic, SETTING_VIDEO_STEREOSCOPICMODE  , 36535, 0, videoSettings.m_StereoMode, entries);
   AddToggle(groupStereoscopic, SETTING_VIDEO_STEREOSCOPICINVERT, 36536, 0, videoSettings.m_StereoInvert);
 
-  // color management settings
-  entries.clear();
-  entries.push_back(std::make_pair(16039, CmsModeOff));
-  entries.push_back(std::make_pair(16042, CmsMode3dLut));
-#ifdef HAVE_LCMS2
-  entries.push_back(std::make_pair(16043, CmsModeProfile));
-#endif
-  AddSpinner(groupColorManagement, SETTING_VIDEO_CMSMODE, 36554, 0, videoSettings.m_CmsMode, entries);
-  AddList(groupColorManagement, SETTING_VIDEO_CMS3DLUT, 36555, 0, videoSettings.m_Cms3dLut, Cms3dLutsFiller, 36555);
+//  // color management settings
+//  entries.clear();
+//  entries.push_back(std::make_pair(16039, CmsModeOff));
+//  entries.push_back(std::make_pair(16042, CmsMode3dLut));
+//#ifdef HAVE_LCMS2
+//  entries.push_back(std::make_pair(16043, CmsModeProfile));
+//#endif
+//  AddSpinner(groupColorManagement, SETTING_VIDEO_CMSMODE, 36554, 0, videoSettings.m_CmsMode, entries);
+//  AddList(groupColorManagement, SETTING_VIDEO_CMS3DLUT, 36555, 0, videoSettings.m_Cms3dLut, Cms3dLutsFiller, 36555);
 
   // general settings
   AddButton(groupSaveAsDefault, SETTING_VIDEO_MAKE_DEFAULT, 12376, 0);
