@@ -91,9 +91,8 @@ void CGUIDialogCMSSettings::InitializeSettings()
 #endif
   int currentMode = CSettings::Get().GetInt("videoscreen.colormanagement");
   AddSpinner(groupColorManagement, SETTING_VIDEO_CMSMODE, 36554, 0, currentMode, entries);
-#if 0
-  AddList(groupColorManagement, SETTING_VIDEO_CMS3DLUT, 36555, 0, cmsSettings.m_Cms3dLut, Cms3dLutsFiller, 36555);
-#endif
+  std::string current3dLUT = CSettings::Get().GetString("videoscreen.cms3dlut");
+  AddList(groupColorManagement, SETTING_VIDEO_CMS3DLUT, 36555, 0, current3dLUT, Cms3dLutsFiller, 36555);
 }
 
 void CGUIDialogCMSSettings::OnSettingChanged(const CSetting *setting)
@@ -139,6 +138,6 @@ void CGUIDialogCMSSettings::Cms3dLutsFiller(
 
   for (int i = 0; i < items.Size(); i++)
   {
-    list.push_back(make_pair(items[i]->GetLabel(), items[i]->GetLabel()));
+    list.push_back(make_pair(items[i]->GetLabel(), items[i]->GetPath()));
   }
 }
