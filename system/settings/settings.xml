@@ -2534,7 +2534,7 @@
           </dependencies>
           <control type="spinner" format="integer" />
         </setting>
-        <setting id="videoscreen.colormanagement" type="integer" label="36045" help="36552">
+        <setting id="videoscreen.colormanagement" type="integer" label="36045" help="36554">
           <requirement>HAS_GL</requirement>
           <level>3</level>
           <default>0</default>
