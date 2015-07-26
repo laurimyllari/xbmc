@@ -2552,6 +2552,9 @@
           <constraints>
             <allowempty>true</allowempty>
           </constraints>
+          <dependencies>
+            <dependency type="visible" setting="videoscreen.colormanagement" operator="is">true</dependency>
+          </dependencies>
           <control type="button" format="action" />
         </setting>
       </group>
