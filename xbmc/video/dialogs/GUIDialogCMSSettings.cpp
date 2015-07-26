@@ -32,7 +32,6 @@
 #include "filesystem/File.h"
 #include "guilib/GUIWindowManager.h"
 #include "profiles/ProfilesManager.h"
-#include "settings/CMSSettings.h"
 #include "settings/Settings.h"
 #include "settings/lib/Setting.h"
 #include "settings/lib/SettingsManager.h"
@@ -43,8 +42,8 @@
 
 #include <vector>
 
-#define SETTING_VIDEO_CMSMODE             "cms.cmsmode"
-#define SETTING_VIDEO_CMS3DLUT            "cms.cms3dlut"
+#define SETTING_VIDEO_CMSMODE             "videoscreen.colormanagement"
+#define SETTING_VIDEO_CMS3DLUT            "videoscreen.cms3dlut"
 
 CGUIDialogCMSSettings::CGUIDialogCMSSettings()
     : CGUIDialogSettingsManualBase(WINDOW_DIALOG_CMS_OSD_SETTINGS, "VideoOSDSettings.xml")
@@ -52,37 +51,6 @@ CGUIDialogCMSSettings::CGUIDialogCMSSettings()
 
 CGUIDialogCMSSettings::~CGUIDialogCMSSettings()
 { }
-
-void CGUIDialogCMSSettings::OnSettingChanged(const CSetting *setting)
-{
-  if (setting == NULL)
-    return;
-
-  CLog::Log(LOGINFO, "CGUIDialogCMSSettings: OnSettingChanged() called");
-  CGUIDialogSettingsManualBase::OnSettingChanged(setting);
-
-  CCMSSettings &cmsSettings = CCMSSettings::Get();
-
-  const std::string &settingId = setting->GetId();
-  if (settingId == SETTING_VIDEO_CMSMODE)
-    cmsSettings.m_CmsMode = static_cast<const CSettingInt*>(setting)->GetValue();
-}
-
-void CGUIDialogCMSSettings::OnSettingAction(const CSetting *setting)
-{
-  if (setting == NULL)
-    return;
-
-  CGUIDialogSettingsManualBase::OnSettingChanged(setting);
-
-  const std::string &settingId = setting->GetId();
-}
-
-void CGUIDialogCMSSettings::Save()
-{
-  CLog::Log(LOGINFO, "CGUIDialogCMSSettings: Save() called");
-  CSettings::Get().Save();
-}
 
 void CGUIDialogCMSSettings::SetupView()
 {
@@ -95,7 +63,7 @@ void CGUIDialogCMSSettings::InitializeSettings()
 {
   CGUIDialogSettingsManualBase::InitializeSettings();
 
-  CSettingCategory *category = AddCategory("audiosubtitlesettings", -1);
+  CSettingCategory *category = AddCategory("cmssettings", -1);
   if (category == NULL)
   {
     CLog::Log(LOGERROR, "CGUIDialogCMSSettings: unable to setup settings");
@@ -112,19 +80,46 @@ void CGUIDialogCMSSettings::InitializeSettings()
 
   bool usePopup = g_SkinInfo->HasSkinFile("DialogSlider.xml");
 
-  CCMSSettings &cmsSettings = CCMSSettings::Get();
-  
   StaticIntegerSettingOptions entries;
 
   // color management settings
-  // entries.clear();
-  entries.push_back(std::make_pair(16039, CmsModeOff));
-  entries.push_back(std::make_pair(16042, CmsMode3dLut));
+  entries.clear();
+  entries.push_back(std::make_pair(16039, 0 /* CMS_MODE_OFF */)); // FIXME: get from CMS class
+  entries.push_back(std::make_pair(16042, 1 /* CMS_MODE_3DLUT */ ));
 #ifdef HAVE_LCMS2
-  entries.push_back(std::make_pair(16043, CmsModeProfile));
+  entries.push_back(std::make_pair(16043, 2 /* CMS_MODE_PROFILE */));
 #endif
-  AddSpinner(groupColorManagement, SETTING_VIDEO_CMSMODE, 36554, 0, cmsSettings.m_CmsMode, entries);
+  int currentMode = CSettings::Get().GetInt("videoscreen.colormanagement");
+  AddSpinner(groupColorManagement, SETTING_VIDEO_CMSMODE, 36554, 0, currentMode, entries);
+#if 0
   AddList(groupColorManagement, SETTING_VIDEO_CMS3DLUT, 36555, 0, cmsSettings.m_Cms3dLut, Cms3dLutsFiller, 36555);
+#endif
+}
+
+void CGUIDialogCMSSettings::OnSettingChanged(const CSetting *setting)
+{
+  if (setting == NULL)
+    return;
+
+  CGUIDialogSettingsManualBase::OnSettingChanged(setting);
+
+  const std::string &settingId = setting->GetId();
+  if (settingId == SETTING_VIDEO_CMSMODE)
+    CSettings::Get().SetInt(SETTING_VIDEO_CMSMODE, static_cast<int>(static_cast<const CSettingInt*>(setting)->GetValue()));
+  else if (settingId == SETTING_VIDEO_CMS3DLUT)
+    CSettings::Get().SetString(SETTING_VIDEO_CMS3DLUT, static_cast<std::string>(static_cast<const CSettingString*>(setting)->GetValue()));
+}
+
+bool CGUIDialogCMSSettings::OnBack(int actionID)
+{
+  Save();
+  return CGUIDialogSettingsBase::OnBack(actionID);
+}
+
+void CGUIDialogCMSSettings::Save()
+{
+  CLog::Log(LOGINFO, "CGUIDialogCMSSettings: Save() called");
+  CSettings::Get().Save();
 }
 
 void CGUIDialogCMSSettings::Cms3dLutsFiller(
@@ -137,7 +132,7 @@ void CGUIDialogCMSSettings::Cms3dLutsFiller(
   CFileItemList items;
 
   // list .3dlut files
-  std::string current3dlut = CSettings::Get().GetString("cms.cms3dlut");
+  std::string current3dlut = CSettings::Get().GetString("videoscreen.cms3dlut");
   if (!current3dlut.empty())
     current3dlut = URIUtils::GetDirectory(current3dlut);
   XFILE::CDirectory::GetDirectory(current3dlut, items, ".3dlut");

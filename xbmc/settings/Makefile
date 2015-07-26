@@ -1,5 +1,4 @@
 SRCS=AdvancedSettings.cpp \
-     CMSSettings.cpp \
      DisplaySettings.cpp \
      MediaSettings.cpp \
      MediaSourceSettings.cpp \

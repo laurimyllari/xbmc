@@ -62,7 +62,6 @@
 #include "pvr/PVRManager.h"
 #include "pvr/windows/GUIWindowPVRGuide.h"
 #include "settings/AdvancedSettings.h"
-#include "settings/CMSSettings.h"
 #include "settings/DisplaySettings.h"
 #include "settings/MediaSettings.h"
 #include "settings/MediaSourceSettings.h"
@@ -249,6 +248,7 @@ void CSettings::Uninitialize()
   m_settingsManager->UnregisterSettingOptionsFiller("screens");
   m_settingsManager->UnregisterSettingOptionsFiller("stereoscopicmodes");
   m_settingsManager->UnregisterSettingOptionsFiller("preferedstereoscopicviewmodes");
+  m_settingsManager->UnregisterSettingOptionsFiller("cmsmodes");
   m_settingsManager->UnregisterSettingOptionsFiller("monitors");
   m_settingsManager->UnregisterSettingOptionsFiller("videoseeksteps");
   m_settingsManager->UnregisterSettingOptionsFiller("shutdownstates");
@@ -614,6 +614,7 @@ void CSettings::InitializeOptionFillers()
   m_settingsManager->RegisterSettingOptionsFiller("screens", CDisplaySettings::SettingOptionsScreensFiller);
   m_settingsManager->RegisterSettingOptionsFiller("stereoscopicmodes", CDisplaySettings::SettingOptionsStereoscopicModesFiller);
   m_settingsManager->RegisterSettingOptionsFiller("preferedstereoscopicviewmodes", CDisplaySettings::SettingOptionsPreferredStereoscopicViewModesFiller);
+  m_settingsManager->RegisterSettingOptionsFiller("cmsmodes", CDisplaySettings::SettingOptionsCmsModesFiller);
   m_settingsManager->RegisterSettingOptionsFiller("monitors", CDisplaySettings::SettingOptionsMonitorsFiller);
   m_settingsManager->RegisterSettingOptionsFiller("videoseeksteps", CSeekHandler::SettingOptionsSeekStepsFiller);
   m_settingsManager->RegisterSettingOptionsFiller("shutdownstates", CPowerManager::SettingOptionsShutdownStatesFiller);
@@ -673,7 +674,6 @@ void CSettings::InitializeISubSettings()
 {
   // register ISubSettings implementations
   m_settingsManager->RegisterSubSettings(&g_application);
-  m_settingsManager->RegisterSubSettings(&CCMSSettings::Get());
   m_settingsManager->RegisterSubSettings(&CDisplaySettings::Get());
   m_settingsManager->RegisterSubSettings(&CMediaSettings::Get());
   m_settingsManager->RegisterSubSettings(&CSkinSettings::Get());
@@ -713,13 +713,10 @@ void CSettings::InitializeISettingCallbacks()
   settingSet.insert("videoscreen.vsync");
   settingSet.insert("videoscreen.monitor");
   settingSet.insert("videoscreen.preferedstereoscopicmode");
+  settingSet.insert("videoscreen.cms3dlut");
   settingSet.insert("videoscreen.displayprofile");
   m_settingsManager->RegisterCallback(&CDisplaySettings::Get(), settingSet);
   
-  settingSet.clear();
-  settingSet.insert("cms.cms3dlut");
-  m_settingsManager->RegisterCallback(&CCMSSettings::Get(), settingSet);
-
   settingSet.clear();
   settingSet.insert("videoplayer.seekdelay");
   settingSet.insert("videoplayer.seeksteps");

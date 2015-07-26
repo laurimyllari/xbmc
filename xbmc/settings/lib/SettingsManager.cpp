@@ -204,8 +204,10 @@ void CSettingsManager::SetInitialized()
   for (SettingMap::iterator setting = m_settings.begin(); setting != m_settings.end(); )
   {
     SettingMap::iterator tmpIterator = setting++;
-    if (tmpIterator->second.setting == NULL)
+    if (tmpIterator->second.setting == NULL) {
       m_settings.erase(tmpIterator);
+      CLog::Log(LOGINFO, "CSettingsManager: removing %s", tmpIterator->first);
+    }
   }
 
   // figure out all the dependencies between settings
@@ -277,6 +279,7 @@ void CSettingsManager::AddSection(CSettingSection *section)
         {
           Setting tmpSetting = { NULL };
           std::pair<SettingMap::iterator, bool> tmpIt = m_settings.insert(make_pair(settingId, tmpSetting));
+          CLog::Log(LOGINFO, "CSettingsManager: AddSection inserted %s", settingId.c_str());
           setting = tmpIt.first;
         }
 
@@ -309,6 +312,7 @@ void CSettingsManager::RegisterCallback(ISettingCallback *callback, const std::s
 
       Setting tmpSetting = { NULL };
       std::pair<SettingMap::iterator, bool> tmpIt = m_settings.insert(make_pair(id, tmpSetting));
+      CLog::Log(LOGINFO, "CSettingsManager: RegisterCallback inserted %s", id.c_str());
       setting = tmpIt.first;
     }
 

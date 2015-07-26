@@ -2534,11 +2534,30 @@
           </dependencies>
           <control type="spinner" format="integer" />
         </setting>
-        <setting id="videoscreen.colormanagement" type="boolean" label="36045" help="36552">
+        <setting id="videoscreen.colormanagement" type="integer" label="36045" help="36552">
           <requirement>HAS_GL</requirement>
           <level>3</level>
-          <default>false</default>
-          <control type="toggle" />
+          <default>0</default>
+          <constraints>
+            <options>cmsmodes</options>
+          </constraints>
+          <control type="list" format="integer"/>
+        </setting>
+        <setting id="videoscreen.cms3dlut" type="string" label="16042" help="36553">
+          <requirement>
+            <and>
+              <condition>HAS_GL</condition>
+            </and>
+          </requirement>
+          <level>3</level>
+          <default></default>
+          <constraints>
+            <allowempty>true</allowempty>
+          </constraints>
+          <dependencies>
+            <dependency type="visible" setting="videoscreen.colormanagement" operator="is">1</dependency>
+          </dependencies>
+          <control type="button" format="action" />
         </setting>
         <setting id="videoscreen.displayprofile" type="string" label="16043" help="36552">
           <requirement>
@@ -2553,7 +2572,7 @@
             <allowempty>true</allowempty>
           </constraints>
           <dependencies>
-            <dependency type="visible" setting="videoscreen.colormanagement" operator="is">true</dependency>
+            <dependency type="visible" setting="videoscreen.colormanagement" operator="is">2</dependency>
           </dependencies>
           <control type="button" format="action" />
         </setting>

@@ -224,7 +224,17 @@ void CDisplaySettings::OnSettingAction(const CSetting *setting)
     return;
 
   const std::string &settingId = setting->GetId();
-  if (settingId == "videoscreen.displayprofile")
+  if (settingId == "videoscreen.cms3dlut")
+  {
+    std::string path = ((CSettingString*)setting)->GetValue();
+    VECSOURCES shares;
+    g_mediaManager.GetLocalDrives(shares);
+    if (CGUIDialogFileBrowser::ShowAndGetFile(shares, ".3dlut", g_localizeStrings.Get(16042), path))
+    {
+      ((CSettingString*)setting)->SetValue(path);
+    }
+  }
+  else if (settingId == "videoscreen.displayprofile")
   {
     std::string path = ((CSettingString*)setting)->GetValue();
     VECSOURCES shares;
@@ -774,6 +784,28 @@ void CDisplaySettings::SettingOptionsPreferredStereoscopicViewModesFiller(const 
     // also skip "mono" mode which is no real stereoscopic mode
     if (mode != RENDER_STEREO_MODE_MONO && g_Windowing.SupportsStereo(mode))
       list.push_back(std::make_pair(CStereoscopicsManager::Get().GetLabelForStereoMode(mode), mode));
+  }
+}
+
+// FIXME: move to CMS
+enum CMS_MODE
+{
+  CMS_MODE_OFF,
+  CMS_MODE_3DLUT,
+  CMS_MODE_PROFILE,
+  CMS_MODE_COUNT
+};
+
+void CDisplaySettings::SettingOptionsCmsModesFiller(const CSetting *setting, std::vector< std::pair<std::string, int> > &list, int &current, void *data)
+{
+  const static std::string cmsModeLabels[] = { "Off", "3DLUT", "ICC profile" };
+  for (int i = CMS_MODE_OFF; i < CMS_MODE_COUNT; i++)
+  {
+    CMS_MODE mode = (CMS_MODE) i;
+#ifndef HAVE_LCMS2
+    if (mode == CMS_MODE_PROFILE) continue;
+#endif
+    list.push_back(std::make_pair(cmsModeLabels[i], mode));
   }
 }
 
