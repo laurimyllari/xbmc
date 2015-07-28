@@ -12,7 +12,8 @@ void main()
   vec4 rgb        = process();
 
 #if (XBMC_3DLUT)
-  rgb             = texture3D(m_CLUT, rgb.rgb);
+  // FIXME: can this be optimized?
+  rgb             = texture3D(m_CLUT, (rgb.rgb*255.0 + 0.5) / 256.0);
 #endif
 
 #if (XBMC_FULLRANGE)
