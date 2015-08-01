@@ -302,41 +302,8 @@ bool CLinuxRendererGL::Configure(unsigned int width, unsigned int height, unsign
 #endif
 
   // load 3DLUT
-
-  if (g_Windowing.Use3DLUT() && (m_tCLUTTex == 0)) {
-    // load 3DLUT
-    // TODO: move to a helper class, provide video primaries for LUT selection
-    if ( loadLUT(m_iFlags, &m_CLUT, &m_CLUTsize) )
-    {
-      CLog::Log(LOGERROR, "Error loading the LUT");
-      return false;
-    }
-
-    // create 3DLUT texture
-    CLog::Log(LOGDEBUG, "LinuxRendererGL: creating 3DLUT");
-    glGenTextures(1, &m_tCLUTTex);
-    glActiveTexture(GL_TEXTURE4);
-    if ( m_tCLUTTex <= 0 )
-    {
-      CLog::Log(LOGERROR, "Error creating 3DLUT texture");
-      return false;
-    }
-
-    // bind and set 3DLUT texture parameters
-    glBindTexture(GL_TEXTURE_3D, m_tCLUTTex);
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-
-    // load 3DLUT data
-    glTexImage3D(GL_TEXTURE_3D, 0, GL_RGB32F, m_CLUTsize, m_CLUTsize, m_CLUTsize, 0, GL_RGB, GL_FLOAT, m_CLUT);
-    free(m_CLUT);
-    glActiveTexture(GL_TEXTURE0);
-  }
+  if (!LoadCLUT())
+    return false;
 
   return true;
 }
@@ -1060,12 +1027,7 @@ void CLinuxRendererGL::UnInit()
     DeleteTexture(i);
   }
 
-  if (m_tCLUTTex)
-  {
-    CLog::Log(LOGDEBUG, "LinuxRendererGL: deleting 3DLUT");
-    glDeleteTextures(1, &m_tCLUTTex);
-    m_tCLUTTex = 0;
-  }
+  DeleteCLUT();
 
   // cleanup framebuffer object if it was in use
   m_fbo.fbo.Cleanup();
@@ -2975,6 +2937,58 @@ CRenderInfo CLinuxRendererGL::GetRenderInfo()
   info.max_buffer_size = NUM_BUFFERS;
   info.optimal_buffer_size = 3;
   return info;
+}
+
+
+// Color management helpers
+
+bool CLinuxRendererGL::LoadCLUT()
+{
+  if (g_Windowing.Use3DLUT() && (m_tCLUTTex == 0)) {
+    // load 3DLUT
+    // TODO: move to a helper class, provide video primaries for LUT selection
+    if ( loadLUT(m_iFlags, &m_CLUT, &m_CLUTsize) )
+    {
+      CLog::Log(LOGERROR, "Error loading the LUT");
+      return false;
+    }
+
+    // create 3DLUT texture
+    CLog::Log(LOGDEBUG, "LinuxRendererGL: creating 3DLUT");
+    glGenTextures(1, &m_tCLUTTex);
+    glActiveTexture(GL_TEXTURE4);
+    if ( m_tCLUTTex <= 0 )
+    {
+      CLog::Log(LOGERROR, "Error creating 3DLUT texture");
+      return false;
+    }
+
+    // bind and set 3DLUT texture parameters
+    glBindTexture(GL_TEXTURE_3D, m_tCLUTTex);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+    // load 3DLUT data
+    glTexImage3D(GL_TEXTURE_3D, 0, GL_RGB32F, m_CLUTsize, m_CLUTsize, m_CLUTsize, 0, GL_RGB, GL_FLOAT, m_CLUT);
+    free(m_CLUT);
+    glActiveTexture(GL_TEXTURE0);
+  }
+  return true;
+}
+
+void CLinuxRendererGL::DeleteCLUT()
+{
+  if (m_tCLUTTex)
+  {
+    CLog::Log(LOGDEBUG, "LinuxRendererGL: deleting 3DLUT");
+    glDeleteTextures(1, &m_tCLUTTex);
+    m_tCLUTTex = 0;
+  }
 }
 
 #endif
