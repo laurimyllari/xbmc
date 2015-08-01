@@ -29,21 +29,20 @@
 #endif
 
 #include "dither.h"
-#include "LutLoader.h"
 
 using namespace Shaders;
 
-GLSLOutput::GLSLOutput(int texunit, unsigned videoflags)
+GLSLOutput::GLSLOutput(GLuint clutTex, int freeTexUnit, unsigned videoflags)
 {
   // set member variable initial values
-  m_1stTexUnit = texunit;
+  m_1stTexUnit = freeTexUnit;
   m_uDither = m_1stTexUnit+0;
   m_uCLUT = m_1stTexUnit+1;
   m_flags = videoflags;
 
   //   textures
   m_tDitherTex  = 0;
-  m_tCLUTTex  = 0;
+  m_tCLUTTex  = clutTex;
 
   //   shader attribute handles
   m_hDither      = -1;
@@ -54,7 +53,7 @@ GLSLOutput::GLSLOutput(int texunit, unsigned videoflags)
   m_dither = g_Windowing.UseDithering();
   m_ditherDepth = g_Windowing.DitherDepth();
   m_fullRange = !g_Windowing.UseLimitedColor();
-  m_3DLUT = g_Windowing.Use3DLUT();
+  m_3DLUT = g_Windowing.Use3DLUT() && (clutTex > 0);
 }
 
 std::string GLSLOutput::GetDefines()
@@ -68,9 +67,6 @@ std::string GLSLOutput::GetDefines()
 
 void GLSLOutput::OnCompiledAndLinked(GLuint programHandle)
 {
-  float *CLUT;
-  int CLUTsize;
-
   FreeTextures();
 
   // get uniform locations
@@ -107,39 +103,6 @@ void GLSLOutput::OnCompiledAndLinked(GLuint programHandle)
 
     // load dither texture data
     glTexImage2D(GL_TEXTURE_2D, 0, GL_R16, dither_size, dither_size, 0, GL_RED, GL_UNSIGNED_SHORT, dither_matrix);
-  }
-
-  if (m_3DLUT) {
-    // load 3DLUT
-    // TODO: move to a helper class, provide video primaries for LUT selection
-    if ( loadLUT(m_flags, &CLUT, &CLUTsize) )
-    {
-      CLog::Log(LOGERROR, "Error loading the LUT");
-      return;
-    }
-
-    // create 3DLUT texture
-    glGenTextures(1, &m_tCLUTTex);
-    glActiveTexture(GL_TEXTURE0 + m_uCLUT);
-    if ( m_tCLUTTex <= 0 )
-    {
-      CLog::Log(LOGERROR, "Error creating 3DLUT texture");
-      return;
-    }
-
-    // bind and set 3DLUT texture parameters
-    glBindTexture(GL_TEXTURE_3D, m_tCLUTTex);
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-
-    // load 3DLUT data
-    glTexImage3D(GL_TEXTURE_3D, 0, GL_RGB32F, CLUTsize, CLUTsize, CLUTsize, 0, GL_RGB, GL_FLOAT, CLUT);
-    free(CLUT);
   }
 
   glActiveTexture(GL_TEXTURE0);
@@ -210,11 +173,6 @@ void GLSLOutput::FreeTextures()
   {
     glDeleteTextures(1, &m_tDitherTex);
     m_tDitherTex = 0;
-  }
-  if (m_tCLUTTex)
-  {
-    glDeleteTextures(1, &m_tCLUTTex);
-    m_tCLUTTex = 0;
   }
 }
 

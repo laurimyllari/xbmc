@@ -33,7 +33,7 @@ namespace Shaders {
   {
   public:
     // take the 1st available texture unit as a parameter
-    GLSLOutput(int texunit, unsigned videoflags);
+    GLSLOutput(GLuint clutTex, int freeTexUnit, unsigned videoflags);
     std::string GetDefines();
     void OnCompiledAndLinked(GLuint programHandle);
     bool OnEnabled();

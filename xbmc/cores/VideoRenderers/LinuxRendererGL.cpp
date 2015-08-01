@@ -50,6 +50,8 @@
 #include "cores/dvdplayer/DVDCodecs/DVDCodecUtils.h"
 #include "cores/FFmpeg.h"
 
+#include "VideoShaders/LutLoader.h"
+
 extern "C" {
 #include "libswscale/swscale.h"
 }
@@ -153,6 +155,10 @@ CLinuxRendererGL::CLinuxRendererGL()
   m_nonLinStretch = false;
   m_nonLinStretchGui = false;
   m_pixelRatio = 0.0f;
+
+  m_tCLUTTex = 0;
+  m_CLUT = NULL;
+  m_CLUTsize = 0;
 }
 
 CLinuxRendererGL::~CLinuxRendererGL()
@@ -294,6 +300,43 @@ bool CLinuxRendererGL::Configure(unsigned int width, unsigned int height, unsign
       m_pboSupported = false;
   }
 #endif
+
+  // load 3DLUT
+
+  if (g_Windowing.Use3DLUT() && (m_tCLUTTex == 0)) {
+    // load 3DLUT
+    // TODO: move to a helper class, provide video primaries for LUT selection
+    if ( loadLUT(m_iFlags, &m_CLUT, &m_CLUTsize) )
+    {
+      CLog::Log(LOGERROR, "Error loading the LUT");
+      return false;
+    }
+
+    // create 3DLUT texture
+    CLog::Log(LOGDEBUG, "LinuxRendererGL: creating 3DLUT");
+    glGenTextures(1, &m_tCLUTTex);
+    glActiveTexture(GL_TEXTURE4);
+    if ( m_tCLUTTex <= 0 )
+    {
+      CLog::Log(LOGERROR, "Error creating 3DLUT texture");
+      return false;
+    }
+
+    // bind and set 3DLUT texture parameters
+    glBindTexture(GL_TEXTURE_3D, m_tCLUTTex);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+    // load 3DLUT data
+    glTexImage3D(GL_TEXTURE_3D, 0, GL_RGB32F, m_CLUTsize, m_CLUTsize, m_CLUTsize, 0, GL_RGB, GL_FLOAT, m_CLUT);
+    free(m_CLUT);
+    glActiveTexture(GL_TEXTURE0);
+  }
 
   return true;
 }
@@ -834,7 +877,7 @@ void CLinuxRendererGL::UpdateVideoFilter()
       }
     }
 
-    m_pVideoFilterShader = new ConvolutionFilterShader(m_scalingMethod, m_nonLinStretch, new GLSLOutput(3, m_iFlags));
+    m_pVideoFilterShader = new ConvolutionFilterShader(m_scalingMethod, m_nonLinStretch, new GLSLOutput(m_tCLUTTex, 3, m_iFlags));
     if (!m_pVideoFilterShader->CompileAndLink())
     {
       CLog::Log(LOGERROR, "GL: Error compiling and linking video filter shader");
@@ -902,7 +945,7 @@ void CLinuxRendererGL::LoadShaders(int field)
         // if single pass, create GLSLOutput helper and pass it to YUV2RGB shader
         m_pYUVShader = new YUV2RGBProgressiveShader(m_textureTarget==GL_TEXTURE_RECTANGLE_ARB, m_iFlags, m_format,
                                                     m_nonLinStretch && m_renderQuality == RQ_SINGLEPASS,
-                                                    (m_renderQuality == RQ_SINGLEPASS) ? new GLSLOutput(3, m_iFlags) : NULL);
+                                                    (m_renderQuality == RQ_SINGLEPASS) ? new GLSLOutput(m_tCLUTTex, 3, m_iFlags) : NULL);
 
         CLog::Log(LOGNOTICE, "GL: Selecting Single Pass YUV 2 RGB shader");
 
@@ -1015,6 +1058,13 @@ void CLinuxRendererGL::UnInit()
   for (int i = 0; i < NUM_BUFFERS; ++i)
   {
     DeleteTexture(i);
+  }
+
+  if (m_tCLUTTex)
+  {
+    CLog::Log(LOGDEBUG, "LinuxRendererGL: deleting 3DLUT");
+    glDeleteTextures(1, &m_tCLUTTex);
+    m_tCLUTTex = 0;
   }
 
   // cleanup framebuffer object if it was in use
