@@ -286,6 +286,7 @@ protected:
   GLuint    m_tCLUTTex;
   float    *m_CLUT;
   int       m_CLUTsize;
+  int       m_cmsToken;
 
   bool LoadCLUT();
   void DeleteCLUT();

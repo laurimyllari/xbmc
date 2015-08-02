@@ -49,8 +49,7 @@
 #include "cores/IPlayer.h"
 #include "cores/dvdplayer/DVDCodecs/DVDCodecUtils.h"
 #include "cores/FFmpeg.h"
-
-#include "VideoShaders/LutLoader.h"
+#include "ColorManager.h"
 
 extern "C" {
 #include "libswscale/swscale.h"
@@ -159,6 +158,7 @@ CLinuxRendererGL::CLinuxRendererGL()
   m_tCLUTTex = 0;
   m_CLUT = NULL;
   m_CLUTsize = 0;
+  m_cmsToken = -1;
 }
 
 CLinuxRendererGL::~CLinuxRendererGL()
@@ -2944,10 +2944,11 @@ CRenderInfo CLinuxRendererGL::GetRenderInfo()
 
 bool CLinuxRendererGL::LoadCLUT()
 {
-  if (g_Windowing.Use3DLUT() && (m_tCLUTTex == 0)) {
+  CColorManager &cms = CColorManager::Get();
+  if (cms.IsEnabled() && (m_tCLUTTex == 0)) {
     // load 3DLUT
     // TODO: move to a helper class, provide video primaries for LUT selection
-    if ( loadLUT(m_iFlags, &m_CLUT, &m_CLUTsize) )
+    if ( !cms.GetVideo3dLut(m_iFlags, &m_cmsToken, &m_CLUTsize, &m_CLUT) )
     {
       CLog::Log(LOGERROR, "Error loading the LUT");
       return false;
