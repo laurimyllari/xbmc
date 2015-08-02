@@ -1,5 +1,13 @@
 #pragma once
 
+enum CMS_MODE
+{
+  CMS_MODE_OFF,
+  CMS_MODE_3DLUT,
+  CMS_MODE_PROFILE,
+  CMS_MODE_COUNT
+};
+
 class CColorManager
 {
 public:
@@ -10,17 +18,27 @@ public:
   static CColorManager& Get();
 
   /*!
+   \brief Check if user has requested color management
+   \return true on enabled, false otherwise
+   */
+  bool IsEnabled();
+
+  /*!
    \brief Get a 3D LUT for video color correction
-   \param primaries video primaries
-   \param token pointer to a color manager configuration token
-   \param clutsize pointer to CLUT resolution
-   \param clutdata pointer to CLUT data
+   \param primaries video primaries (see CONF_FLAGS_COLPRI)
+   \param cmsToken pointer to a color manager configuration token
+   \param clutSize pointer to CLUT resolution
+   \param clutData pointer to CLUT data (caller to free memory afterwards)
    \return true on success, false otherwise
    */
-  // GetVideo3dLut
+  bool GetVideo3dLut(int primaries, int *cmsToken, int *clutSize, float **clutData);
 
-
-  // CheckConfiguration
+  /*!
+   \brief Check if a 3D LUT is still valid
+   \param cmsToken pointer to a color manager configuration token
+   \return true on valid, false if 3D LUT should be reloaded
+   */
+  bool CheckConfiguration(int cmsToken);
 
 private:
   // private constructor, use the Get() method to access an instance
@@ -31,13 +49,15 @@ private:
    \param filename full path and filename
    \return true if the file can be loaded, false otherwise
    */
-  // Probe3dLut
+  bool Probe3dLut(const std::string filename);
 
   /*! \brief Load a .3dlut file
    \param filename full path and filename
-   \return ??
+   \param clutSize pointer to CLUT resolution
+   \param clutData pointer to CLUT data
+   \return true on success, false otherwise
    */
-  // Load3dLut
+  bool Load3dLut(const std::string filename, float **clutData, int *clutSize);
 
 
 #ifdef HAVE_LCMS2
@@ -77,15 +97,16 @@ private:
 #endif // HAVE_LCMS2
 
   // current configuration:
-  // video primaries
-  // clut size
-  // clut data
-  // token
+  int curVideoPrimaries;
+  int curClutSize;
+  int curCmsToken;
   // (compare the following to system settings to see if configuration is still valid)
-  // cms mode
-  // 3dlut file
-  // icc profile
+  int curCmsMode;
+  std::string cur3dlutFile;
+  std::string curIccProfile;
   // display parameters (gamma, input/output offset, primaries, whitepoint?, intent)
-}
+
+ 
+};
 
 
