@@ -159,6 +159,7 @@ CLinuxRendererGL::CLinuxRendererGL()
   m_CLUT = NULL;
   m_CLUTsize = 0;
   m_cmsToken = -1;
+  m_cmsOn = false;
 }
 
 CLinuxRendererGL::~CLinuxRendererGL()
@@ -302,8 +303,20 @@ bool CLinuxRendererGL::Configure(unsigned int width, unsigned int height, unsign
 #endif
 
   // load 3DLUT
-  if (!LoadCLUT())
-    return false;
+  CColorManager &cms = CColorManager::Get();
+  if (cms.IsEnabled())
+  {
+    if (!cms.CheckConfiguration(m_cmsToken))
+    {
+      if (!LoadCLUT())
+        return false;
+    }
+    m_cmsOn = true;
+  }
+  else
+  {
+    m_cmsOn = false;
+  }
 
   return true;
 }
@@ -737,6 +750,8 @@ void CLinuxRendererGL::UpdateVideoFilter()
   bool pixelRatioChanged    = (CDisplaySettings::Get().GetPixelRatio() > 1.001f || CDisplaySettings::Get().GetPixelRatio() < 0.999f) !=
                               (m_pixelRatio > 1.001f || m_pixelRatio < 0.999f);
   bool nonLinStretchChanged = false;
+  bool cmsChanged           = (m_cmsOn != CColorManager::Get().IsEnabled())
+                              || (m_cmsOn && !CColorManager::Get().CheckConfiguration(m_cmsToken));
   if (m_nonLinStretchGui != CDisplaySettings::Get().IsNonLinearStretched() || pixelRatioChanged)
   {
     m_nonLinStretchGui   = CDisplaySettings::Get().IsNonLinearStretched();
@@ -756,7 +771,7 @@ void CLinuxRendererGL::UpdateVideoFilter()
     }
   }
 
-  if (m_scalingMethodGui == CMediaSettings::Get().GetCurrentVideoSettings().m_ScalingMethod && !nonLinStretchChanged)
+  if (m_scalingMethodGui == CMediaSettings::Get().GetCurrentVideoSettings().m_ScalingMethod && !nonLinStretchChanged && !cmsChanged)
     return;
   else
     m_reloadShaders = 1;
@@ -765,6 +780,22 @@ void CLinuxRendererGL::UpdateVideoFilter()
   //or when it's on and the scaling method changed
   if (m_nonLinStretch || nonLinStretchChanged)
     m_reloadShaders = 1;
+
+  if (cmsChanged)
+  {
+    if (CColorManager::Get().IsEnabled())
+    {
+      if (!CColorManager::Get().CheckConfiguration(m_cmsToken))
+      {
+        LoadCLUT();
+      }
+      m_cmsOn = true;
+    }
+    else
+    {
+      m_cmsOn = false;
+    }
+  }
 
   m_scalingMethodGui = CMediaSettings::Get().GetCurrentVideoSettings().m_ScalingMethod;
   m_scalingMethod    = m_scalingMethodGui;
@@ -2944,41 +2975,40 @@ CRenderInfo CLinuxRendererGL::GetRenderInfo()
 
 bool CLinuxRendererGL::LoadCLUT()
 {
+  DeleteCLUT();
+
   CColorManager &cms = CColorManager::Get();
-  if (cms.IsEnabled() && (m_tCLUTTex == 0)) {
-    // load 3DLUT
-    // TODO: move to a helper class, provide video primaries for LUT selection
-    if ( !cms.GetVideo3dLut(m_iFlags, &m_cmsToken, &m_CLUTsize, &m_CLUT) )
-    {
-      CLog::Log(LOGERROR, "Error loading the LUT");
-      return false;
-    }
-
-    // create 3DLUT texture
-    CLog::Log(LOGDEBUG, "LinuxRendererGL: creating 3DLUT");
-    glGenTextures(1, &m_tCLUTTex);
-    glActiveTexture(GL_TEXTURE4);
-    if ( m_tCLUTTex <= 0 )
-    {
-      CLog::Log(LOGERROR, "Error creating 3DLUT texture");
-      return false;
-    }
-
-    // bind and set 3DLUT texture parameters
-    glBindTexture(GL_TEXTURE_3D, m_tCLUTTex);
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-
-    // load 3DLUT data
-    glTexImage3D(GL_TEXTURE_3D, 0, GL_RGB32F, m_CLUTsize, m_CLUTsize, m_CLUTsize, 0, GL_RGB, GL_FLOAT, m_CLUT);
-    free(m_CLUT);
-    glActiveTexture(GL_TEXTURE0);
+  // load 3DLUT
+  if ( !cms.GetVideo3dLut(m_iFlags, &m_cmsToken, &m_CLUTsize, &m_CLUT) )
+  {
+    CLog::Log(LOGERROR, "Error loading the LUT");
+    return false;
   }
+
+  // create 3DLUT texture
+  CLog::Log(LOGDEBUG, "LinuxRendererGL: creating 3DLUT");
+  glGenTextures(1, &m_tCLUTTex);
+  glActiveTexture(GL_TEXTURE4);
+  if ( m_tCLUTTex <= 0 )
+  {
+    CLog::Log(LOGERROR, "Error creating 3DLUT texture");
+    return false;
+  }
+
+  // bind and set 3DLUT texture parameters
+  glBindTexture(GL_TEXTURE_3D, m_tCLUTTex);
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+  glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+  glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+  // load 3DLUT data
+  glTexImage3D(GL_TEXTURE_3D, 0, GL_RGB32F, m_CLUTsize, m_CLUTsize, m_CLUTsize, 0, GL_RGB, GL_FLOAT, m_CLUT);
+  free(m_CLUT);
+  glActiveTexture(GL_TEXTURE0);
   return true;
 }
 

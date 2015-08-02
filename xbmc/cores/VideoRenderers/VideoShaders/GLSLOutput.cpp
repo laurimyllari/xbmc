@@ -22,8 +22,9 @@
 
 #include "system.h"
 #include "GLSLOutput.h"
-#include "windowing/WindowingFactory.h"
+#include "ColorManager.h"
 #include "utils/log.h"
+#include "windowing/WindowingFactory.h"
 #if defined(HAS_GL) || defined(HAS_GLES)
 #include "utils/GLUtils.h"
 #endif
@@ -53,7 +54,9 @@ GLSLOutput::GLSLOutput(GLuint clutTex, int freeTexUnit, unsigned videoflags)
   m_dither = g_Windowing.UseDithering();
   m_ditherDepth = g_Windowing.DitherDepth();
   m_fullRange = !g_Windowing.UseLimitedColor();
-  m_3DLUT = g_Windowing.Use3DLUT() && (clutTex > 0);
+  // make sure CMS is enabled - this allows us to keep the texture
+  // around to quickly switch between CMS on and off
+  m_3DLUT = CColorManager::Get().IsEnabled() && (clutTex > 0);
 }
 
 std::string GLSLOutput::GetDefines()

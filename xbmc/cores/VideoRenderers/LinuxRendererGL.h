@@ -287,6 +287,7 @@ protected:
   float    *m_CLUT;
   int       m_CLUTsize;
   int       m_cmsToken;
+  bool      m_cmsOn;
 
   bool LoadCLUT();
   void DeleteCLUT();
