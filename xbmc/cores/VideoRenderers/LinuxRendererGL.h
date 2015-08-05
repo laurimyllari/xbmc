@@ -284,7 +284,7 @@ protected:
 
   // color management
   GLuint    m_tCLUTTex;
-  float    *m_CLUT;
+  uint16_t *m_CLUT;
   int       m_CLUTsize;
   int       m_cmsToken;
   bool      m_cmsOn;

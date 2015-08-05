@@ -31,7 +31,7 @@ public:
    \param clutData pointer to CLUT data (caller to free memory afterwards)
    \return true on success, false otherwise
    */
-  bool GetVideo3dLut(int primaries, int *cmsToken, int *clutSize, float **clutData);
+  bool GetVideo3dLut(int primaries, int *cmsToken, int *clutSize, uint16_t **clutData);
 
   /*!
    \brief Check if a 3D LUT is still valid
@@ -57,7 +57,7 @@ private:
    \param clutData pointer to CLUT data
    \return true on success, false otherwise
    */
-  bool Load3dLut(const std::string filename, float **clutData, int *clutSize);
+  bool Load3dLut(const std::string filename, uint16_t **clutData, int *clutSize);
 
 
 #ifdef HAVE_LCMS2

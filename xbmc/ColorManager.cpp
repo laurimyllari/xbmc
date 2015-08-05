@@ -35,7 +35,7 @@ bool CColorManager::IsEnabled()
   return CSettings::Get().GetInt("videoscreen.colormanagement") != CMS_MODE_OFF;
 }
 
-bool CColorManager::GetVideo3dLut(int primaries, int *cmsToken, int *clutSize, float **clutData)
+bool CColorManager::GetVideo3dLut(int primaries, int *cmsToken, int *clutSize, uint16_t **clutData)
 {
   switch (CSettings::Get().GetInt("videoscreen.colormanagement"))
   {
@@ -145,7 +145,7 @@ bool CColorManager::Probe3dLut(const std::string filename)
     return true;
 }
 
-bool CColorManager::Load3dLut(const std::string filename, float **CLUT, int *CLUTsize)
+bool CColorManager::Load3dLut(const std::string filename, uint16_t **CLUT, int *CLUTsize)
 {
     struct H3DLUT header;
     CFile lutFile;
@@ -174,7 +174,7 @@ bool CColorManager::Load3dLut(const std::string filename, float **CLUT, int *CLU
 
     int lutsamples = rSize * gSize * bSize * 3;
     *CLUTsize = rSize; // TODO: assumes cube
-    *CLUT = (float*)malloc(lutsamples * sizeof(float));
+    *CLUT = (uint16_t*)malloc(lutsamples * sizeof(uint16_t));
 
     lutFile.Seek(header.lutFileOffset, SEEK_SET);
 
@@ -184,9 +184,9 @@ bool CColorManager::Load3dLut(const std::string filename, float **CLUT, int *CLU
             lutFile.Read(input, 3*bSize*sizeof(uint16_t));
             int index = (rIndex + gIndex*rSize)*3;
             for (int bIndex=0; bIndex<bSize; bIndex++) {
-                (*CLUT)[index+bIndex*rSize*gSize*3+0] = input[bIndex*3+2]/65535.0;
-                (*CLUT)[index+bIndex*rSize*gSize*3+1] = input[bIndex*3+1]/65535.0;
-                (*CLUT)[index+bIndex*rSize*gSize*3+2] = input[bIndex*3+0]/65535.0;
+                (*CLUT)[index+bIndex*rSize*gSize*3+0] = input[bIndex*3+2];
+                (*CLUT)[index+bIndex*rSize*gSize*3+1] = input[bIndex*3+1];
+                (*CLUT)[index+bIndex*rSize*gSize*3+2] = input[bIndex*3+0];
             }
         }
     }
@@ -199,9 +199,9 @@ bool CColorManager::Load3dLut(const std::string filename, float **CLUT, int *CLU
       int index = 3*(y*rSize*rSize + y*rSize + y);
       CLog::Log(LOGDEBUG, "  %d (%d): %d %d %d\n",
           (int)round(y * 255 / (rSize-1.0)), y,
-          (int)round(255*(*CLUT)[index+0]),
-          (int)round(255*(*CLUT)[index+1]),
-          (int)round(255*(*CLUT)[index+2]));
+          (int)round((*CLUT)[index+0]/256),
+          (int)round((*CLUT)[index+1]/256),
+          (int)round((*CLUT)[index+2]/256));
     }
 #endif
 
