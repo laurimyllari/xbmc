@@ -207,3 +207,14 @@ bool CColorManager::Load3dLut(const std::string filename, uint16_t **CLUT, int *
 
     return true;
 }
+
+
+
+#if defined(HAVE_LCMS2)
+// ICC profile support
+
+
+
+
+
+#endif //defined(HAVE_LCMS2)

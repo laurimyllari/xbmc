@@ -8,6 +8,25 @@ enum CMS_MODE
   CMS_MODE_COUNT
 };
 
+enum CMS_PRIMARIES
+{
+  CMS_PRIMARIES_AUTO,
+  CMS_PRIMARIES_BT709,    // HDTV
+  CMS_PRIMARIES_BT170M,   // SDTV
+  CMS_PRIMARIES_BT470M,   // NTSC (1953)
+  CMS_PRIMARIES_BT470BG,  // PAL/SECAM (1975)
+  CMS_PRIMARIES_240M,     // early HDTV
+  CMS_PRIMARIES_COUNT
+};
+
+enum CMS_TRC_TYPE
+{
+  CMS_TRC_BT1886,
+  CMS_TRC_INPUT_OFFSET,
+  CMS_TRC_OUTPUT_OFFSET,
+  CMS_TRC_COUNT
+};
+
 class CColorManager
 {
 public:
@@ -70,7 +89,7 @@ private:
    \param filename full path and filename
    \return display profile (cmsHPROFILE)
    */
-  // LoadIccDisplayProfile
+  cmsHPROFILE LoadIccDisplayProfile(const std::string filename);
 
   /* \brief Load an ICC device link
    \param filename full path and filename
@@ -80,9 +99,10 @@ private:
 
 
   // create a gamma curve
-
+  cmsToneCurve* CreateToneCurve(CMS_TRC_TYPE gammaType, float gammaValue, cmsCIEXYZ blackPoint);
 
   // create a source profile
+  cmsHPROFILE CreateSourceProfile(CMS_PRIMARIES primaries, cmsToneCurve *gamma, int whitepoint);
 
 
   /* \brief Create 3D LUT
@@ -91,7 +111,7 @@ private:
    \param resolution size of the 3D LUT to create
    \param clut pointer to LUT data
    */
-  // Create3dLut
+  bool Create3dLut(cmsHTRANSFORM transform, uint16_t **clutData, int *clutSize);
 
 
 #endif // HAVE_LCMS2
