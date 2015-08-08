@@ -308,6 +308,7 @@ bool CLinuxRendererGL::Configure(unsigned int width, unsigned int height, unsign
   {
     if (!cms.CheckConfiguration(m_cmsToken))
     {
+      CLog::Log(LOGDEBUG, "CMS configuration changed, reload LUT");
       if (!LoadCLUT())
         return false;
     }
@@ -787,6 +788,7 @@ void CLinuxRendererGL::UpdateVideoFilter()
     {
       if (!CColorManager::Get().CheckConfiguration(m_cmsToken))
       {
+        CLog::Log(LOGDEBUG, "CMS configuration changed, reload LUT");
         LoadCLUT();
       }
       m_cmsOn = true;

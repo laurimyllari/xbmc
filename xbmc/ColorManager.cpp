@@ -2,6 +2,7 @@
 #include <math.h>
 #include <string>
 
+#include "config.h"
 #include "ColorManager.h"
 #include "filesystem/File.h"
 #include "settings/Settings.h"
@@ -42,6 +43,7 @@ bool CColorManager::GetVideo3dLut(int primaries, int *cmsToken, int *clutSize, u
   switch (CSettings::Get().GetInt("videoscreen.colormanagement"))
   {
   case CMS_MODE_3DLUT:
+    CLog::Log(LOGDEBUG, "ColorManager: CMS_MODE_3DLUT\n");
     cur3dlutFile = CSettings::Get().GetString("videoscreen.cms3dlut");
     if (!Load3dLut(cur3dlutFile, clutData, clutSize))
       return false;
@@ -49,60 +51,67 @@ bool CColorManager::GetVideo3dLut(int primaries, int *cmsToken, int *clutSize, u
     break;
 
   case CMS_MODE_PROFILE:
+    CLog::Log(LOGDEBUG, "ColorManager: CMS_MODE_PROFILE\n");
 #if defined(HAVE_LCMS2)
-    bool changed = false;
-    // check if display profile is not loaded, or has changed
-    if (curIccProfile != CSettings::Get().GetString("videoscreen.displayprofile"))
     {
-      changed = true;
-      // free old profile if there is one
-      if (m_hProfile)
-        cmsCloseProfile(m_hProfile);
-      // load profile
-      m_hProfile = LoadIccDisplayProfile(CSettings::Get().GetString("videoscreen.displayprofile"));
-      if (!m_hProfile)
-        return false;
-      // detect blackpoint
-      if (cmsDetectBlackPoint(&m_blackPoint, m_hProfile, INTENT_PERCEPTUAL, 0))
+      bool changed = false;
+      // check if display profile is not loaded, or has changed
+      if (curIccProfile != CSettings::Get().GetString("videoscreen.displayprofile"))
       {
-        CLog::Log(LOGDEBUG, "black point: %f\n", m_blackPoint.Y);
+        changed = true;
+        // free old profile if there is one
+        if (m_hProfile)
+          cmsCloseProfile(m_hProfile);
+        // load profile
+        m_hProfile = LoadIccDisplayProfile(CSettings::Get().GetString("videoscreen.displayprofile"));
+        if (!m_hProfile)
+          return false;
+        // detect blackpoint
+        if (cmsDetectBlackPoint(&m_blackPoint, m_hProfile, INTENT_PERCEPTUAL, 0))
+        {
+          CLog::Log(LOGDEBUG, "black point: %f\n", m_blackPoint.Y);
+        }
+        curIccProfile = CSettings::Get().GetString("videoscreen.displayprofile");
       }
+      // create gamma curve
+      cmsToneCurve* gammaCurve;
+      // TODO: gamma paremeters
+      gammaCurve =
+        CreateToneCurve(CMS_TRC_BT1886, 2.4, m_blackPoint);
+
+      // create source profile
+      // TODO: primaries and whitepoint selection
+      cmsHPROFILE sourceProfile =
+        CreateSourceProfile(CMS_PRIMARIES_BT709, gammaCurve, 0);
+
+      // link profiles
+      // TODO: intent selection, switch output to 16 bits?
+      cmsHTRANSFORM deviceLink =
+        cmsCreateTransform(sourceProfile, TYPE_RGB_FLT,
+            m_hProfile, TYPE_RGB_FLT,
+            INTENT_PERCEPTUAL, 0);
+
+      // sample the transformation
+      *clutSize = 65;
+      Create3dLut(deviceLink, clutData, clutSize);
+
+      // free gamma curve, source profile and transformation
+      cmsDeleteTransform(deviceLink);
+      cmsCloseProfile(sourceProfile);
+      cmsFreeToneCurve(gammaCurve);
     }
-    // create gamma curve
-    cmsToneCurve* gammaCurve;
-    // TODO: gamma paremeters
-    gammaCurve =
-      CreateToneCurve(CMS_TRC_BT1886, 2.4, m_blackPoint);
 
-    // create source profile
-    // TODO: primaries and whitepoint selection
-    cmsHPROFILE sourceProfile =
-      CreateSourceProfile(CMS_PRIMARIES_BT709, gammaCurve, 0);
-
-    // link profiles
-    // TODO: intent selection, switch output to 16 bits?
-    cmsHTRANSFORM deviceLink =
-      cmsCreateTransform(sourceProfile, TYPE_RGB_FLT,
-                          m_hProfile, TYPE_RGB_FLT,
-                          INTENT_PERCEPTUAL, 0);
-
-    // sample the transformation
-    *clutSize = 65;
-    Create3dLut(deviceLink, clutData, clutSize);
-
-    // free gamma curve, source profile and transformation
-    cmsDeleteTransform(deviceLink);
-    cmsCloseProfile(sourceProfile);
-    cmsFreeToneCurve(gammaCurves[0]);
-
-    curCmsMode = CMS_MODE_3DLUT;
+    curCmsMode = CMS_MODE_PROFILE;
     break;
 #else   //defined(HAVE_LCMS2)
     return false;
 #endif  //defined(HAVE_LCMS2)
 
   case CMS_MODE_OFF:
+    CLog::Log(LOGDEBUG, "ColorManager: CMS_MODE_OFF\n");
+    return false;
   default:
+    CLog::Log(LOGDEBUG, "ColorManager: unknown CMS mode\n");
     return false;
   }
 
@@ -292,7 +301,7 @@ cmsToneCurve* CColorManager::CreateToneCurve(CMS_TRC_TYPE gammaType, float gamma
   cmsFloat32Number gammatable[tablesize];
   for (int i=0; i<tablesize; i++)
   {
-    gammatable[i] = gain * pow(((double) i)/(tablesize-1) + lift, gamma);
+    gammatable[i] = gain * pow(((double) i)/(tablesize-1) + lift, gammaValue);
   }
 
   cmsToneCurve* Gamma = cmsBuildTabulatedToneCurveFloat(0,
@@ -324,7 +333,7 @@ bool CColorManager::Create3dLut(cmsHTRANSFORM transform, uint16_t **clutData, in
 {
     const int lutResolution = *clutSize;
     int lutsamples = lutResolution * lutResolution * lutResolution * 3;
-    *CLUT = (uint16_t*)malloc(lutsamples * sizeof(uint16_t));
+    *clutData = (uint16_t*)malloc(lutsamples * sizeof(uint16_t));
 
     cmsFloat32Number input[3*lutResolution];
     cmsFloat32Number output[3*lutResolution];
@@ -341,9 +350,9 @@ bool CColorManager::Create3dLut(cmsHTRANSFORM transform, uint16_t **clutData, in
           input[rIndex*3+2] = videoToPC(bIndex / (lutResolution-1.0));
         }
         int index = (bIndex*lutResolution*lutResolution + gIndex*lutResolution)*3;
-        cmsDoTransform(hTransform, input, output, lutResolution);
+        cmsDoTransform(transform, input, output, lutResolution);
         for (int i=0; i<lutResolution*3; i++) {
-          (*CLUT)[index+i] = PCToVideo(output[i]) * 65535;
+          (*clutData)[index+i] = PCToVideo(output[i]) * 65535;
         }
       }
     }
@@ -354,9 +363,9 @@ bool CColorManager::Create3dLut(cmsHTRANSFORM transform, uint16_t **clutData, in
       int index = 3*(y*lutResolution*lutResolution + y*lutResolution + y);
       CLog::Log(LOGDEBUG, "  %d (%d): %d %d %d\n",
           (int)round(y * 255 / (lutResolution-1.0)), y,
-          (int)round((*CLUT)[index+0]/256),
-          (int)round((*CLUT)[index+1]/256),
-          (int)round((*CLUT)[index+2]/256));
+          (int)round((*clutData)[index+0]/256),
+          (int)round((*clutData)[index+1]/256),
+          (int)round((*clutData)[index+2]/256));
     }
 #endif
 
