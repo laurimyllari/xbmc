@@ -33,7 +33,7 @@
 
 using namespace Shaders;
 
-GLSLOutput::GLSLOutput(GLuint clutTex, int freeTexUnit, unsigned videoflags)
+GLSLOutput::GLSLOutput(GLuint clutTex, int clutSize, int freeTexUnit, unsigned videoflags)
 {
   // set member variable initial values
   m_1stTexUnit = freeTexUnit;
@@ -50,6 +50,7 @@ GLSLOutput::GLSLOutput(GLuint clutTex, int freeTexUnit, unsigned videoflags)
   m_hDitherQuant = -1;
   m_hDitherSize  = -1;
   m_hCLUT        = -1;
+  m_hCLUTSize    = -1;
 
   m_dither = g_Windowing.UseDithering();
   m_ditherDepth = g_Windowing.DitherDepth();
@@ -57,6 +58,7 @@ GLSLOutput::GLSLOutput(GLuint clutTex, int freeTexUnit, unsigned videoflags)
   // make sure CMS is enabled - this allows us to keep the texture
   // around to quickly switch between CMS on and off
   m_3DLUT = CColorManager::Get().IsEnabled() && (clutTex > 0);
+  m_uCLUTSize = clutSize;
 }
 
 std::string GLSLOutput::GetDefines()
@@ -82,6 +84,7 @@ void GLSLOutput::OnCompiledAndLinked(GLuint programHandle)
   //   3DLUT
   if (m_3DLUT) {
     m_hCLUT        = glGetUniformLocation(programHandle, "m_CLUT");
+    m_hCLUTSize    = glGetUniformLocation(programHandle, "m_CLUTsize");
   }
 
   if (m_dither) {
@@ -137,6 +140,7 @@ bool GLSLOutput::OnEnabled()
   if (m_3DLUT) {
     // set texture units
     glUniform1i(m_hCLUT, m_uCLUT);
+    glUniform1f(m_hCLUTSize, m_uCLUTSize);
     VerifyGLState();
 
     // bind textures

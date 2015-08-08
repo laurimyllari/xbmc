@@ -33,7 +33,7 @@ namespace Shaders {
   {
   public:
     // take the 1st available texture unit as a parameter
-    GLSLOutput(GLuint clutTex, int freeTexUnit, unsigned videoflags);
+    GLSLOutput(GLuint clutTex, int clutSize, int freeTexUnit, unsigned videoflags);
     std::string GetDefines();
     void OnCompiledAndLinked(GLuint programHandle);
     bool OnEnabled();
@@ -52,6 +52,7 @@ namespace Shaders {
     int m_1stTexUnit;
     int m_uDither;
     int m_uCLUT;
+    int m_uCLUTSize;
 
     // defines
 
@@ -60,6 +61,7 @@ namespace Shaders {
     GLint m_hDitherQuant;
     GLint m_hDitherSize;
     GLint m_hCLUT;
+    GLint m_hCLUTSize;
 
     // textures
     GLuint m_tDitherTex;
