@@ -1,3 +1,4 @@
+#include <boost/algorithm/clamp.hpp>
 #include <math.h>
 #include <string>
 
@@ -7,6 +8,7 @@
 #include "utils/log.h"
 
 using namespace XFILE;
+namespace ba = boost::algorithm;
 
 CColorManager &CColorManager::Get()
 {
@@ -43,20 +45,72 @@ bool CColorManager::GetVideo3dLut(int primaries, int *cmsToken, int *clutSize, u
     cur3dlutFile = CSettings::Get().GetString("videoscreen.cms3dlut");
     if (!Load3dLut(cur3dlutFile, clutData, clutSize))
       return false;
-    // set current state
-    curVideoPrimaries = primaries;
-    curClutSize = *clutSize;
-    *cmsToken = ++curCmsToken;
     curCmsMode = CMS_MODE_3DLUT;
-    return true;
+    break;
 
   case CMS_MODE_PROFILE:
+#if defined(HAVE_LCMS2)
+    bool changed = false;
+    // check if display profile is not loaded, or has changed
+    if (curIccProfile != CSettings::Get().GetString("videoscreen.displayprofile"))
+    {
+      changed = true;
+      // free old profile if there is one
+      if (m_hProfile)
+        cmsCloseProfile(m_hProfile);
+      // load profile
+      m_hProfile = LoadIccDisplayProfile(CSettings::Get().GetString("videoscreen.displayprofile"));
+      if (!m_hProfile)
+        return false;
+      // detect blackpoint
+      if (cmsDetectBlackPoint(&m_blackPoint, m_hProfile, INTENT_PERCEPTUAL, 0))
+      {
+        CLog::Log(LOGDEBUG, "black point: %f\n", m_blackPoint.Y);
+      }
+    }
+    // create gamma curve
+    cmsToneCurve* gammaCurve;
+    // TODO: gamma paremeters
+    gammaCurve =
+      CreateToneCurve(CMS_TRC_BT1886, 2.4, m_blackPoint);
 
+    // create source profile
+    // TODO: primaries and whitepoint selection
+    cmsHPROFILE sourceProfile =
+      CreateSourceProfile(CMS_PRIMARIES_BT709, gammaCurve, 0);
+
+    // link profiles
+    // TODO: intent selection, switch output to 16 bits?
+    cmsHTRANSFORM deviceLink =
+      cmsCreateTransform(sourceProfile, TYPE_RGB_FLT,
+                          m_hProfile, TYPE_RGB_FLT,
+                          INTENT_PERCEPTUAL, 0);
+
+    // sample the transformation
+    *clutSize = 65;
+    Create3dLut(deviceLink, clutData, clutSize);
+
+    // free gamma curve, source profile and transformation
+    cmsDeleteTransform(deviceLink);
+    cmsCloseProfile(sourceProfile);
+    cmsFreeToneCurve(gammaCurves[0]);
+
+    curCmsMode = CMS_MODE_3DLUT;
+    break;
+#else   //defined(HAVE_LCMS2)
+    return false;
+#endif  //defined(HAVE_LCMS2)
 
   case CMS_MODE_OFF:
   default:
     return false;
   }
+
+  // set current state
+  curVideoPrimaries = primaries;
+  curClutSize = *clutSize;
+  *cmsToken = ++curCmsToken;
+  return true;
 }
 
 bool CColorManager::CheckConfiguration(int cmsToken)
@@ -213,8 +267,100 @@ bool CColorManager::Load3dLut(const std::string filename, uint16_t **CLUT, int *
 #if defined(HAVE_LCMS2)
 // ICC profile support
 
+cmsHPROFILE CColorManager::LoadIccDisplayProfile(const std::string filename)
+{
+    cmsHPROFILE hProfile;
+
+    hProfile = cmsOpenProfileFromFile(filename.c_str(), "r");
+    if (!hProfile)
+    {
+      CLog::Log(LOGERROR, "ICC profile not found\n");
+    }
+    return hProfile;
+}
 
 
+cmsToneCurve* CColorManager::CreateToneCurve(CMS_TRC_TYPE gammaType, float gammaValue, cmsCIEXYZ blackPoint)
+{
+  // FIXME: REWRITE
+  double bkipow = pow(blackPoint.Y, 1.0/gammaValue);
+  double wtipow = 1.0;
+  double lift = bkipow / (wtipow - bkipow);
+  double gain = pow(wtipow - bkipow, gammaValue);
+
+  const int tablesize = 1024;
+  cmsFloat32Number gammatable[tablesize];
+  for (int i=0; i<tablesize; i++)
+  {
+    gammatable[i] = gain * pow(((double) i)/(tablesize-1) + lift, gamma);
+  }
+
+  cmsToneCurve* Gamma = cmsBuildTabulatedToneCurveFloat(0,
+      tablesize,
+      gammatable);
+  return Gamma;
+}
+
+
+cmsHPROFILE CColorManager::CreateSourceProfile(CMS_PRIMARIES primaries, cmsToneCurve *gamma, int whitepoint)
+{
+  cmsToneCurve*  Gamma3[3];
+  cmsHPROFILE hProfile;
+  cmsCIExyY whiteCoords = { 0.3127, 0.3290, 1.0 };
+  cmsCIExyYTRIPLE primaryCoords = {
+      0.640, 0.330, 1.0,
+      0.300, 0.600, 1.0,
+      0.150, 0.060, 1.0 };
+
+  Gamma3[0] = Gamma3[1] = Gamma3[2] = gamma;
+  hProfile = cmsCreateRGBProfile(&whiteCoords,
+      &primaryCoords,
+      Gamma3);
+  return hProfile;
+}
+
+
+bool CColorManager::Create3dLut(cmsHTRANSFORM transform, uint16_t **clutData, int *clutSize)
+{
+    const int lutResolution = *clutSize;
+    int lutsamples = lutResolution * lutResolution * lutResolution * 3;
+    *CLUT = (uint16_t*)malloc(lutsamples * sizeof(uint16_t));
+
+    cmsFloat32Number input[3*lutResolution];
+    cmsFloat32Number output[3*lutResolution];
+
+#define videoToPC(x) ( ba::clamp((((x)*255)-16)/219,0,1) )
+#define PCToVideo(x) ( (((x)*219)+16)/255 )
+// #define videoToPC(x) ( x )
+// #define PCToVideo(x) ( x )
+    for (int bIndex=0; bIndex<lutResolution; bIndex++) {
+      for (int gIndex=0; gIndex<lutResolution; gIndex++) {
+        for (int rIndex=0; rIndex<lutResolution; rIndex++) {
+          input[rIndex*3+0] = videoToPC(rIndex / (lutResolution-1.0));
+          input[rIndex*3+1] = videoToPC(gIndex / (lutResolution-1.0));
+          input[rIndex*3+2] = videoToPC(bIndex / (lutResolution-1.0));
+        }
+        int index = (bIndex*lutResolution*lutResolution + gIndex*lutResolution)*3;
+        cmsDoTransform(hTransform, input, output, lutResolution);
+        for (int i=0; i<lutResolution*3; i++) {
+          (*CLUT)[index+i] = PCToVideo(output[i]) * 65535;
+        }
+      }
+    }
+
+#if 1 // debug 3dLUT greyscale
+    for (int y=0; y<lutResolution; y+=1)
+    {
+      int index = 3*(y*lutResolution*lutResolution + y*lutResolution + y);
+      CLog::Log(LOGDEBUG, "  %d (%d): %d %d %d\n",
+          (int)round(y * 255 / (lutResolution-1.0)), y,
+          (int)round((*CLUT)[index+0]/256),
+          (int)round((*CLUT)[index+1]/256),
+          (int)round((*CLUT)[index+2]/256));
+    }
+#endif
+
+}
 
 
 #endif //defined(HAVE_LCMS2)

@@ -1,5 +1,9 @@
 #pragma once
 
+#if defined(HAVE_LCMS2)
+#include "lcms2.h"
+#endif
+
 enum CMS_MODE
 {
   CMS_MODE_OFF,
@@ -24,6 +28,7 @@ enum CMS_TRC_TYPE
   CMS_TRC_BT1886,
   CMS_TRC_INPUT_OFFSET,
   CMS_TRC_OUTPUT_OFFSET,
+  CMS_TRC_ABSOLUTE,
   CMS_TRC_COUNT
 };
 
@@ -113,6 +118,9 @@ private:
    */
   bool Create3dLut(cmsHTRANSFORM transform, uint16_t **clutData, int *clutSize);
 
+  // keep current display profile loaded here
+  cmsHPROFILE m_hProfile;
+  cmsCIEXYZ   m_blackPoint = { 0, 0, 0 };
 
 #endif // HAVE_LCMS2
 
