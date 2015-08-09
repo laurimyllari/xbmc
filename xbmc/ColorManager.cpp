@@ -89,10 +89,10 @@ bool CColorManager::GetVideo3dLut(int primaries, int *cmsToken, int *clutSize, u
       cmsHTRANSFORM deviceLink =
         cmsCreateTransform(sourceProfile, TYPE_RGB_FLT,
             m_hProfile, TYPE_RGB_FLT,
-            INTENT_PERCEPTUAL, 0);
+            INTENT_ABSOLUTE_COLORIMETRIC, 0);
 
       // sample the transformation
-      *clutSize = 16;
+      *clutSize = 64;
       Create3dLut(deviceLink, clutData, clutSize);
 
       // free gamma curve, source profile and transformation
