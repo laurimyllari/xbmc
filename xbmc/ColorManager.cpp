@@ -341,6 +341,7 @@ cmsToneCurve* CColorManager::CreateToneCurve(CMS_TRC_TYPE gammaType, float gamma
 #undef HALFPT
     }
     // fall through to bt.1886 with calculated technical gamma
+
   case CMS_TRC_BT1886:
     {
       double bkipow = pow(blackPoint.Y, 1.0/gammaValue);
@@ -353,12 +354,31 @@ cmsToneCurve* CColorManager::CreateToneCurve(CMS_TRC_TYPE gammaType, float gamma
       }
     }
     break;
+
   case CMS_TRC_OUTPUT_OFFSET:
+    {
+      double gain = 1-blackPoint.Y;
+      // TODO: here gamma is adjusted to match absolute gamma output at 50%
+      //  - is it a good idea or should the provided gamma be kept?
+      double adjustedGamma = log(gain/(gain+pow(2,-gammaValue)-1))/log(2);
+      for (int i=0; i<tableSize; i++)
+      {
+        gammaTable[i] = gain * pow(((double) i)/(tableSize-1), adjustedGamma) + blackPoint.Y;
+      }
+    }
+    break;
 
   case CMS_TRC_ABSOLUTE:
+    {
+      for (int i=0; i<tableSize; i++)
+      {
+        gammaTable[i] = fmax(blackPoint.Y, pow(((double) i)/(tableSize-1), gammaValue));
+      }
+    }
+    break;
 
   default:
-    CLog::Log(LOGERROR, "gamma type not implemented yet\n");
+    CLog::Log(LOGERROR, "gamma type %d not implemented\n", gammaType);
   }
 
   cmsToneCurve* result = cmsBuildTabulatedToneCurveFloat(0,
