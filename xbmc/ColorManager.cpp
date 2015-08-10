@@ -77,7 +77,7 @@ bool CColorManager::GetVideo3dLut(int primaries, int *cmsToken, int *clutSize, u
       cmsToneCurve* gammaCurve;
       // TODO: gamma paremeters
       gammaCurve =
-        CreateToneCurve(CMS_TRC_BT1886, 2.4, m_blackPoint);
+        CreateToneCurve(CMS_TRC_INPUT_OFFSET, 2.2, m_blackPoint);
 
       // create source profile
       // TODO: primaries and whitepoint selection
@@ -291,23 +291,80 @@ cmsHPROFILE CColorManager::LoadIccDisplayProfile(const std::string filename)
 
 cmsToneCurve* CColorManager::CreateToneCurve(CMS_TRC_TYPE gammaType, float gammaValue, cmsCIEXYZ blackPoint)
 {
-  // FIXME: REWRITE
-  double bkipow = pow(blackPoint.Y, 1.0/gammaValue);
-  double wtipow = 1.0;
-  double lift = bkipow / (wtipow - bkipow);
-  double gain = pow(wtipow - bkipow, gammaValue);
+  const int tableSize = 1024;
+  cmsFloat32Number gammaTable[tableSize];
 
-  const int tablesize = 1024;
-  cmsFloat32Number gammatable[tablesize];
-  for (int i=0; i<tablesize; i++)
+  switch (gammaType)
   {
-    gammatable[i] = gain * pow(((double) i)/(tablesize-1) + lift, gammaValue);
+  case CMS_TRC_INPUT_OFFSET:
+    // calculate gamma to match effective gamma provided, then fall through to bt.1886
+    {
+      double effectiveGamma = gammaValue;
+      double gammaLow = effectiveGamma;  // low limit for infinite contrast ratio
+      double gammaHigh = 3.2;            // high limit for 2.4 gamma on 200:1 contrast ratio
+      double gammaGuess = 0.0;
+#define TARGET(gamma) (pow(0.5, (gamma)))
+#define GAIN(bkpt, gamma) (pow(1-pow((bkpt), 1/(gamma)), (gamma)))
+#define LIFT(bkpt, gamma) (pow((bkpt), 1/(gamma)) / (1-pow((bkpt), 1/(gamma))))
+#define HALFPT(bkpt, gamma) (GAIN(bkpt, gamma)*pow(0.5+LIFT(bkpt, gamma), gamma))
+      for (int i=0; i<3; i++)
+      {
+        // calculate 50% output for gammaLow and gammaHigh, compare to target 50% output
+        gammaGuess = gammaLow + (gammaHigh-gammaLow)
+            * ((HALFPT(blackPoint.Y, gammaLow)-TARGET(effectiveGamma))
+                / (HALFPT(blackPoint.Y, gammaLow)-HALFPT(blackPoint.Y, gammaHigh)));
+        if (HALFPT(blackPoint.Y, gammaGuess) < TARGET(effectiveGamma))
+        {
+          // guess is too high
+          // move low limit half way to guess
+          gammaLow = gammaLow + (gammaGuess-gammaLow)/2;
+          // set high limit to guess
+          gammaHigh = gammaGuess;
+        }
+        else
+        {
+          // guess is too low
+          // set low limit to guess
+          gammaLow = gammaGuess;
+          // move high limit half way to guess
+          gammaHigh = gammaHigh + (gammaGuess-gammaLow)/2;
+        }
+      }
+      gammaValue = gammaGuess;
+      CLog::Log(LOGINFO, "calculated technical gamma %0.3f (50%% target %0.4f, output %0.4f)\n",
+        gammaValue,
+        TARGET(effectiveGamma),
+        HALFPT(blackPoint.Y, gammaValue));
+#undef TARGET
+#undef GAIN
+#undef LIFT
+#undef HALFPT
+    }
+    // fall through to bt.1886 with calculated technical gamma
+  case CMS_TRC_BT1886:
+    {
+      double bkipow = pow(blackPoint.Y, 1.0/gammaValue);
+      double wtipow = 1.0;
+      double lift = bkipow / (wtipow - bkipow);
+      double gain = pow(wtipow - bkipow, gammaValue);
+      for (int i=0; i<tableSize; i++)
+      {
+        gammaTable[i] = gain * pow(((double) i)/(tableSize-1) + lift, gammaValue);
+      }
+    }
+    break;
+  case CMS_TRC_OUTPUT_OFFSET:
+
+  case CMS_TRC_ABSOLUTE:
+
+  default:
+    CLog::Log(LOGERROR, "gamma type not implemented yet\n");
   }
 
-  cmsToneCurve* Gamma = cmsBuildTabulatedToneCurveFloat(0,
-      tablesize,
-      gammatable);
-  return Gamma;
+  cmsToneCurve* result = cmsBuildTabulatedToneCurveFloat(0,
+      tableSize,
+      gammaTable);
+  return result;
 }
 
 
