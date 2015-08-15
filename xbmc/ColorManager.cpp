@@ -86,6 +86,7 @@ bool CColorManager::GetVideo3dLut(int primaries, int *cmsToken, int *clutSize, u
 
       // link profiles
       // TODO: intent selection, switch output to 16 bits?
+      cmsSetAdaptationState(0.0);
       cmsHTRANSFORM deviceLink =
         cmsCreateTransform(sourceProfile, TYPE_RGB_FLT,
             m_hProfile, TYPE_RGB_FLT,
@@ -388,7 +389,7 @@ cmsToneCurve* CColorManager::CreateToneCurve(CMS_TRC_TYPE gammaType, float gamma
 }
 
 
-cmsHPROFILE CColorManager::CreateSourceProfile(CMS_PRIMARIES primaries, cmsToneCurve *gamma, int whitepoint)
+cmsHPROFILE CColorManager::CreateSourceProfile(CMS_PRIMARIES primaries, cmsToneCurve *gamma, CMS_WHITEPOINT whitepoint)
 {
   cmsToneCurve*  Gamma3[3];
   cmsHPROFILE hProfile;
