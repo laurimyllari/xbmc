@@ -46,6 +46,7 @@
 #define SETTING_VIDEO_CMSENABLE           "videoscreen.cmsenabled"
 #define SETTING_VIDEO_CMSMODE             "videoscreen.cmsmode"
 #define SETTING_VIDEO_CMS3DLUT            "videoscreen.cms3dlut"
+#define SETTING_VIDEO_CMSGAMMAMODE        "videoscreen.cmsgammamode"
 #define SETTING_VIDEO_CMSGAMMA            "videoscreen.cmsgamma"
 
 CGUIDialogCMSSettings::CGUIDialogCMSSettings()
@@ -108,6 +109,15 @@ void CGUIDialogCMSSettings::InitializeSettings()
   depsCmsIcc.push_back(dependencyCmsEnabled);
   depsCmsIcc.push_back(dependencyCmsIcc);
 
+  // create "depsCmsGamma" for effective gamma adjustment (not available with bt.1886)
+  CSettingDependency dependencyCmsGamma(SettingDependencyTypeVisible, m_settingsManager);
+  dependencyCmsGamma.And()
+    ->Add(CSettingDependencyConditionPtr(new CSettingDependencyCondition(SETTING_VIDEO_CMSGAMMAMODE, std::to_string(CMS_TRC_BT1886), SettingDependencyOperatorEquals, true, m_settingsManager)));
+  SettingDependencies depsCmsGamma;
+  depsCmsGamma.push_back(dependencyCmsEnabled);
+  depsCmsGamma.push_back(dependencyCmsIcc);
+  depsCmsGamma.push_back(dependencyCmsGamma);
+
   // color management settings
   AddToggle(groupColorManagement, SETTING_VIDEO_CMSENABLE, 36554, 0, CSettings::Get().GetBool(SETTING_VIDEO_CMSENABLE));
 
@@ -126,10 +136,19 @@ void CGUIDialogCMSSettings::InitializeSettings()
   settingCms3dlut->SetDependencies(depsCms3dlut);
 
   // display settings
+  int currentGammaMode = CSettings::Get().GetInt(SETTING_VIDEO_CMSGAMMAMODE);
+  entries.clear();
+  entries.push_back(std::make_pair(16044, CMS_TRC_BT1886));
+  entries.push_back(std::make_pair(16045, CMS_TRC_INPUT_OFFSET));
+  entries.push_back(std::make_pair(16046, CMS_TRC_OUTPUT_OFFSET));
+  entries.push_back(std::make_pair(16047, CMS_TRC_ABSOLUTE));
+  CSettingInt *settingCmsGammaMode = AddSpinner(groupColorManagement, SETTING_VIDEO_CMSGAMMAMODE, 36557, 0, currentGammaMode, entries);
+  settingCmsGammaMode->SetDependencies(depsCmsIcc);
+
   float currentGamma = CSettings::Get().GetInt(SETTING_VIDEO_CMSGAMMA)/100.0f;
   if (currentGamma == 0.0) currentGamma = 2.20;
   CSettingNumber *settingCmsGamma = AddSlider(groupColorManagement, SETTING_VIDEO_CMSGAMMA, 36558, 0, currentGamma, 36559, 1.6, 0.05, 2.8, 36558, usePopup);
-  settingCmsGamma->SetDependencies(depsCmsIcc);
+  settingCmsGamma->SetDependencies(depsCmsGamma);
 }
 
 void CGUIDialogCMSSettings::OnSettingChanged(const CSetting *setting)
@@ -146,6 +165,8 @@ void CGUIDialogCMSSettings::OnSettingChanged(const CSetting *setting)
     CSettings::Get().SetInt(SETTING_VIDEO_CMSMODE, static_cast<int>(static_cast<const CSettingInt*>(setting)->GetValue()));
   else if (settingId == SETTING_VIDEO_CMS3DLUT)
     CSettings::Get().SetString(SETTING_VIDEO_CMS3DLUT, static_cast<std::string>(static_cast<const CSettingString*>(setting)->GetValue()));
+  else if (settingId == SETTING_VIDEO_CMSGAMMAMODE)
+    CSettings::Get().SetInt(SETTING_VIDEO_CMSGAMMAMODE, static_cast<int>(static_cast<const CSettingInt*>(setting)->GetValue()));
   else if (settingId == SETTING_VIDEO_CMSGAMMA)
     CSettings::Get().SetInt(SETTING_VIDEO_CMSGAMMA, static_cast<float>(static_cast<const CSettingNumber*>(setting)->GetValue())*100);
 }

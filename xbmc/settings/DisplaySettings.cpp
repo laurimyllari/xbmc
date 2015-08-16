@@ -797,6 +797,21 @@ void CDisplaySettings::SettingOptionsCmsModesFiller(const CSetting *setting, std
   }
 }
 
+void CDisplaySettings::SettingOptionsCmsGammaModesFiller(const CSetting *setting, std::vector< std::pair<std::string, int> > &list, int &current, void *data)
+{
+  const static std::string cmsGammaModeLabels[] = {
+    "BT.1886",
+    "Input offset",
+    "Output offset",
+    "Absolute",
+  }; // FIXME: should be moved to ColorManager.h?
+  for (int i = 0; i < CMS_TRC_COUNT; i++)
+  {
+    CMS_TRC_TYPE mode = (CMS_TRC_TYPE) i;
+    list.push_back(std::make_pair(cmsGammaModeLabels[i], mode));
+  }
+}
+
 void CDisplaySettings::SettingOptionsMonitorsFiller(const CSetting *setting, std::vector< std::pair<std::string, std::string> > &list, std::string &current, void *data)
 {
 #if defined(HAS_GLX)

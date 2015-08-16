@@ -7349,6 +7349,24 @@ msgctxt "#16043"
 msgid "ICC Profile"
 msgstr ""
 
+#: xbmc/video/dialogs/GUIDialogVideoSettings.cpp
+#. gamma type labels
+msgctxt "#16044"
+msgid "BT.1886"
+msgstr ""
+
+msgctxt "#16045"
+msgid "Input offset"
+msgstr ""
+
+msgctxt "#16046"
+msgid "Output offset"
+msgstr ""
+
+msgctxt "#16047"
+msgid "Absolute"
+msgstr ""
+
 #empty strings from id 16044 to 16099
 
 #: xbmc/video/windows/GUIWindowVideoNav.cpp

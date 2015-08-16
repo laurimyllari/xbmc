@@ -140,6 +140,7 @@ private:
   int curCmsMode;
   std::string cur3dlutFile;
   std::string curIccProfile;
+  CMS_TRC_TYPE curIccGammaMode;
   int curIccGamma;
   // display parameters (gamma, input/output offset, primaries, whitepoint?, intent)
 
