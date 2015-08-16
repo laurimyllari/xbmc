@@ -76,8 +76,9 @@ bool CColorManager::GetVideo3dLut(int primaries, int *cmsToken, int *clutSize, u
       // create gamma curve
       cmsToneCurve* gammaCurve;
       // TODO: gamma paremeters
+      curIccGamma = CSettings::Get().GetInt("videoscreen.cmsgamma");
       gammaCurve =
-        CreateToneCurve(CMS_TRC_INPUT_OFFSET, 2.2, m_blackPoint);
+        CreateToneCurve(CMS_TRC_OUTPUT_OFFSET, curIccGamma/100.0f, m_blackPoint);
 
       // create source profile
       // TODO: primaries and whitepoint selection
@@ -135,6 +136,8 @@ bool CColorManager::CheckConfiguration(int cmsToken)
   case CMS_MODE_PROFILE:
     if (curIccProfile != CSettings::Get().GetString("videoscreen.displayprofile"))
       return false; // different ICC profile selected
+    if (curIccGamma != CSettings::Get().GetInt("videoscreen.cmsgamma"))
+      return false; // effective gamma changed
     // TODO: check other parameters
     break;
   default:

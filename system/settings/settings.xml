@@ -2567,6 +2567,26 @@
           </dependencies>
           <control type="button" format="action" />
         </setting>
+        <setting id="videoscreen.cmsgamma" type="integer" label="36558" help="36558">
+          <requirement>
+            <and>
+              <condition>HAS_GL</condition>
+              <condition>HAVE_LCMS2</condition>
+            </and>
+          </requirement>
+          <level>3</level>
+          <default>220</default>
+          <constraints>
+            <minimum>160</minimum>
+            <step>005</step>
+            <maximum>280</maximum>
+          </constraints>
+          <dependencies>
+            <dependency type="visible" setting="videoscreen.cmsenabled" operator="is">true</dependency>
+            <dependency type="visible" setting="videoscreen.cmsmode" operator="is">1</dependency>
+          </dependencies>
+          <control type="spinner" format="integer" />
+        </setting>
       </group>
     </category>
     <category id="audiooutput" label="772" help="36360">

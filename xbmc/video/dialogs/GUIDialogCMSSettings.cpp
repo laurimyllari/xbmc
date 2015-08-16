@@ -46,6 +46,7 @@
 #define SETTING_VIDEO_CMSENABLE           "videoscreen.cmsenabled"
 #define SETTING_VIDEO_CMSMODE             "videoscreen.cmsmode"
 #define SETTING_VIDEO_CMS3DLUT            "videoscreen.cms3dlut"
+#define SETTING_VIDEO_CMSGAMMA            "videoscreen.cmsgamma"
 
 CGUIDialogCMSSettings::CGUIDialogCMSSettings()
     : CGUIDialogSettingsManualBase(WINDOW_DIALOG_CMS_OSD_SETTINGS, "VideoOSDSettings.xml")
@@ -99,6 +100,14 @@ void CGUIDialogCMSSettings::InitializeSettings()
   depsCms3dlut.push_back(dependencyCmsEnabled);
   depsCms3dlut.push_back(dependencyCms3dlut);
 
+  // create "depsCmsIcc" for display settings with icc profile
+  CSettingDependency dependencyCmsIcc(SettingDependencyTypeVisible, m_settingsManager);
+  dependencyCmsIcc.And()
+    ->Add(CSettingDependencyConditionPtr(new CSettingDependencyCondition(SETTING_VIDEO_CMSMODE, std::to_string(CMS_MODE_PROFILE), SettingDependencyOperatorEquals, false, m_settingsManager)));
+  SettingDependencies depsCmsIcc;
+  depsCmsIcc.push_back(dependencyCmsEnabled);
+  depsCmsIcc.push_back(dependencyCmsIcc);
+
   // color management settings
   AddToggle(groupColorManagement, SETTING_VIDEO_CMSENABLE, 36554, 0, CSettings::Get().GetBool(SETTING_VIDEO_CMSENABLE));
 
@@ -115,6 +124,12 @@ void CGUIDialogCMSSettings::InitializeSettings()
   std::string current3dLUT = CSettings::Get().GetString(SETTING_VIDEO_CMS3DLUT);
   CSettingString *settingCms3dlut = AddList(groupColorManagement, SETTING_VIDEO_CMS3DLUT, 36556, 0, current3dLUT, Cms3dLutsFiller, 36555);
   settingCms3dlut->SetDependencies(depsCms3dlut);
+
+  // display settings
+  float currentGamma = CSettings::Get().GetInt(SETTING_VIDEO_CMSGAMMA)/100.0f;
+  if (currentGamma == 0.0) currentGamma = 2.20;
+  CSettingNumber *settingCmsGamma = AddSlider(groupColorManagement, SETTING_VIDEO_CMSGAMMA, 36558, 0, currentGamma, 36559, 1.6, 0.05, 2.8, 36558, usePopup);
+  settingCmsGamma->SetDependencies(depsCmsIcc);
 }
 
 void CGUIDialogCMSSettings::OnSettingChanged(const CSetting *setting)
@@ -131,6 +146,8 @@ void CGUIDialogCMSSettings::OnSettingChanged(const CSetting *setting)
     CSettings::Get().SetInt(SETTING_VIDEO_CMSMODE, static_cast<int>(static_cast<const CSettingInt*>(setting)->GetValue()));
   else if (settingId == SETTING_VIDEO_CMS3DLUT)
     CSettings::Get().SetString(SETTING_VIDEO_CMS3DLUT, static_cast<std::string>(static_cast<const CSettingString*>(setting)->GetValue()));
+  else if (settingId == SETTING_VIDEO_CMSGAMMA)
+    CSettings::Get().SetInt(SETTING_VIDEO_CMSGAMMA, static_cast<float>(static_cast<const CSettingNumber*>(setting)->GetValue())*100);
 }
 
 bool CGUIDialogCMSSettings::OnBack(int actionID)

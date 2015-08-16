@@ -140,6 +140,7 @@ private:
   int curCmsMode;
   std::string cur3dlutFile;
   std::string curIccProfile;
+  int curIccGamma;
   // display parameters (gamma, input/output offset, primaries, whitepoint?, intent)
 
  

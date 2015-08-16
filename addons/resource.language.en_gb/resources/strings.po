@@ -16331,7 +16331,25 @@ msgctxt "#36556"
 msgid "3D LUT"
 msgstr ""
 
-#empty strings from id 36557 to 36599
+#. label of a setting, allowing to specify the type of display gamma
+#: xbmc/video/dialogs/GUIDialogCMSSettings.cpp
+msgctxt "#36557"
+msgid "Gamma type"
+msgstr ""
+
+#. label of a setting, allowing to specify the effective display gamma
+#: xbmc/video/dialogs/GUIDialogCMSSettings.cpp
+msgctxt "#36558"
+msgid "Effective gamma"
+msgstr ""
+
+#. gamma display format
+#: xbmc/video/dialogs/GUIDialogCMSSettings.cpp
+msgctxt "#36559"
+msgid "%1.2f"
+msgstr ""
+
+#empty strings from id 36560 to 36599
 #reserved strings 365XX
 
 #. Description of settings category "Music -> Library" with label #14022
