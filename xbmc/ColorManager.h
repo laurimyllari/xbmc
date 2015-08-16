@@ -4,9 +4,10 @@
 #include "lcms2.h"
 #endif
 
+#include <string>
+
 enum CMS_MODE
 {
-  CMS_MODE_OFF,
   CMS_MODE_3DLUT,
   CMS_MODE_PROFILE,
   CMS_MODE_COUNT

@@ -35,12 +35,12 @@ bool CColorManager::IsEnabled()
 {
   //TODO: check that the configuration is valid here (files exist etc)
 
-  return CSettings::Get().GetInt("videoscreen.colormanagement") != CMS_MODE_OFF;
+  return CSettings::Get().GetBool("videoscreen.cmsenabled");
 }
 
 bool CColorManager::GetVideo3dLut(int primaries, int *cmsToken, int *clutSize, uint16_t **clutData)
 {
-  switch (CSettings::Get().GetInt("videoscreen.colormanagement"))
+  switch (CSettings::Get().GetInt("videoscreen.cmsmode"))
   {
   case CMS_MODE_3DLUT:
     CLog::Log(LOGDEBUG, "ColorManager: CMS_MODE_3DLUT\n");
@@ -108,11 +108,8 @@ bool CColorManager::GetVideo3dLut(int primaries, int *cmsToken, int *clutSize, u
     return false;
 #endif  //defined(HAVE_LCMS2)
 
-  case CMS_MODE_OFF:
-    CLog::Log(LOGDEBUG, "ColorManager: CMS_MODE_OFF\n");
-    return false;
   default:
-    CLog::Log(LOGDEBUG, "ColorManager: unknown CMS mode\n");
+    CLog::Log(LOGDEBUG, "ColorManager: unknown CMS mode %d\n", CSettings::Get().GetInt("videoscreen.cmsmode"));
     return false;
   }
 
@@ -127,7 +124,7 @@ bool CColorManager::CheckConfiguration(int cmsToken)
 {
   if (cmsToken != curCmsToken)
     return false;
-  if (curCmsMode != CSettings::Get().GetInt("videoscreen.colormanagement"))
+  if (curCmsMode != CSettings::Get().GetInt("videoscreen.cmsmode"))
     return false;   // CMS mode has changed
   switch (curCmsMode)
   {

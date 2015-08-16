@@ -16313,19 +16313,25 @@ msgctxt "#36553"
 msgid "Default 3D LUT for color management."
 msgstr ""
 
-#. label of a setting, allowing to specify the color management mode of a video
+#. label of a setting, allowing to toggle the color management on/off
 #: xbmc/video/dialogs/GUIDialogVideoSettings.cpp
 msgctxt "#36554"
+msgid "Color management"
+msgstr ""
+
+#. label of a setting, allowing to specify the color management mode of a video
+#: xbmc/video/dialogs/GUIDialogVideoSettings.cpp
+msgctxt "#36555"
 msgid "Color management mode"
 msgstr ""
 
 #. label of a setting, allowing to specify the 3dlut for a video
 #: xbmc/video/dialogs/GUIDialogVideoSettings.cpp
-msgctxt "#36555"
+msgctxt "#36556"
 msgid "3D LUT"
 msgstr ""
 
-#empty strings from id 36556 to 36599
+#empty strings from id 36557 to 36599
 #reserved strings 365XX
 
 #. Description of settings category "Music -> Library" with label #14022

@@ -21,6 +21,7 @@
 #include <float.h>
 #include <stdlib.h>
 
+#include "ColorManager.h"
 #include "DisplaySettings.h"
 #include "dialogs/GUIDialogFileBrowser.h"
 #include "dialogs/GUIDialogYesNo.h"
@@ -783,19 +784,10 @@ void CDisplaySettings::SettingOptionsPreferredStereoscopicViewModesFiller(const 
   }
 }
 
-// FIXME: move to CMS
-enum CMS_MODE
-{
-  CMS_MODE_OFF,
-  CMS_MODE_3DLUT,
-  CMS_MODE_PROFILE,
-  CMS_MODE_COUNT
-};
-
 void CDisplaySettings::SettingOptionsCmsModesFiller(const CSetting *setting, std::vector< std::pair<std::string, int> > &list, int &current, void *data)
 {
-  const static std::string cmsModeLabels[] = { "Off", "3DLUT", "ICC profile" };
-  for (int i = CMS_MODE_OFF; i < CMS_MODE_COUNT; i++)
+  const static std::string cmsModeLabels[] = { "3DLUT", "ICC profile" }; // FIXME: should be moved to ColorManager.h?
+  for (int i = 0; i < CMS_MODE_COUNT; i++)
   {
     CMS_MODE mode = (CMS_MODE) i;
 #ifndef HAVE_LCMS2
