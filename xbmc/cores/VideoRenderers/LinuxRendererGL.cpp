@@ -306,7 +306,7 @@ bool CLinuxRendererGL::Configure(unsigned int width, unsigned int height, unsign
   CColorManager &cms = CColorManager::Get();
   if (cms.IsEnabled())
   {
-    if (!cms.CheckConfiguration(m_cmsToken))
+    if (!cms.CheckConfiguration(m_cmsToken, m_iFlags))
     {
       CLog::Log(LOGDEBUG, "CMS configuration changed, reload LUT");
       if (!LoadCLUT())
@@ -752,7 +752,7 @@ void CLinuxRendererGL::UpdateVideoFilter()
                               (m_pixelRatio > 1.001f || m_pixelRatio < 0.999f);
   bool nonLinStretchChanged = false;
   bool cmsChanged           = (m_cmsOn != CColorManager::Get().IsEnabled())
-                              || (m_cmsOn && !CColorManager::Get().CheckConfiguration(m_cmsToken));
+                              || (m_cmsOn && !CColorManager::Get().CheckConfiguration(m_cmsToken, m_iFlags));
   if (m_nonLinStretchGui != CDisplaySettings::Get().IsNonLinearStretched() || pixelRatioChanged)
   {
     m_nonLinStretchGui   = CDisplaySettings::Get().IsNonLinearStretched();
@@ -786,7 +786,7 @@ void CLinuxRendererGL::UpdateVideoFilter()
   {
     if (CColorManager::Get().IsEnabled())
     {
-      if (!CColorManager::Get().CheckConfiguration(m_cmsToken))
+      if (!CColorManager::Get().CheckConfiguration(m_cmsToken, m_iFlags))
       {
         CLog::Log(LOGDEBUG, "CMS configuration changed, reload LUT");
         LoadCLUT();

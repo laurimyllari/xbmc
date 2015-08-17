@@ -68,9 +68,10 @@ public:
   /*!
    \brief Check if a 3D LUT is still valid
    \param cmsToken pointer to a color manager configuration token
+   \param flags video renderer flags (see CONF_FLAGS_COLPRI)
    \return true on valid, false if 3D LUT should be reloaded
    */
-  bool CheckConfiguration(int cmsToken);
+  bool CheckConfiguration(int cmsToken, int flags);
 
 private:
   // private constructor, use the Get() method to access an instance
@@ -133,16 +134,18 @@ private:
 #endif // HAVE_LCMS2
 
   // current configuration:
-  int curVideoPrimaries;
+  CMS_PRIMARIES curVideoPrimaries;
   int curClutSize;
   int curCmsToken;
   // (compare the following to system settings to see if configuration is still valid)
   int curCmsMode;
   std::string cur3dlutFile;
   std::string curIccProfile;
+  // display parameters (gamma, input/output offset, primaries, whitepoint, intent?)
+  CMS_WHITEPOINT curIccWhitePoint;
+  CMS_PRIMARIES curIccPrimaries;
   CMS_TRC_TYPE curIccGammaMode;
-  int curIccGamma;
-  // display parameters (gamma, input/output offset, primaries, whitepoint?, intent)
+  int curIccGamma;  // gamma multiplied by 100
 
  
 };

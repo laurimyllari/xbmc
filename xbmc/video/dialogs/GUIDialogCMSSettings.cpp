@@ -46,6 +46,8 @@
 #define SETTING_VIDEO_CMSENABLE           "videoscreen.cmsenabled"
 #define SETTING_VIDEO_CMSMODE             "videoscreen.cmsmode"
 #define SETTING_VIDEO_CMS3DLUT            "videoscreen.cms3dlut"
+#define SETTING_VIDEO_CMSWHITEPOINT       "videoscreen.cmswhitepoint"
+#define SETTING_VIDEO_CMSPRIMARIES        "videoscreen.cmsprimaries"
 #define SETTING_VIDEO_CMSGAMMAMODE        "videoscreen.cmsgammamode"
 #define SETTING_VIDEO_CMSGAMMA            "videoscreen.cmsgamma"
 
@@ -136,6 +138,24 @@ void CGUIDialogCMSSettings::InitializeSettings()
   settingCms3dlut->SetDependencies(depsCms3dlut);
 
   // display settings
+  int currentWhitepoint = CSettings::Get().GetInt(SETTING_VIDEO_CMSWHITEPOINT);
+  entries.clear();
+  entries.push_back(std::make_pair(16048, CMS_WHITEPOINT_D65));
+  entries.push_back(std::make_pair(16049, CMS_WHITEPOINT_D93));
+  CSettingInt *settingCmsWhitepoint = AddSpinner(groupColorManagement, SETTING_VIDEO_CMSWHITEPOINT, 36560, 0, currentWhitepoint, entries);
+  settingCmsWhitepoint->SetDependencies(depsCmsIcc);
+
+  int currentPrimaries = CSettings::Get().GetInt(SETTING_VIDEO_CMSPRIMARIES);
+  entries.clear();
+  entries.push_back(std::make_pair(16050, CMS_PRIMARIES_AUTO));
+  entries.push_back(std::make_pair(16051, CMS_PRIMARIES_BT709));
+  entries.push_back(std::make_pair(16052, CMS_PRIMARIES_170M));
+  entries.push_back(std::make_pair(16053, CMS_PRIMARIES_BT470M));
+  entries.push_back(std::make_pair(16054, CMS_PRIMARIES_BT470BG));
+  entries.push_back(std::make_pair(16055, CMS_PRIMARIES_240M));
+  CSettingInt *settingCmsPrimaries = AddSpinner(groupColorManagement, SETTING_VIDEO_CMSPRIMARIES, 36561, 0, currentPrimaries, entries);
+  settingCmsPrimaries->SetDependencies(depsCmsIcc);
+
   int currentGammaMode = CSettings::Get().GetInt(SETTING_VIDEO_CMSGAMMAMODE);
   entries.clear();
   entries.push_back(std::make_pair(16044, CMS_TRC_BT1886));
@@ -165,6 +185,10 @@ void CGUIDialogCMSSettings::OnSettingChanged(const CSetting *setting)
     CSettings::Get().SetInt(SETTING_VIDEO_CMSMODE, static_cast<int>(static_cast<const CSettingInt*>(setting)->GetValue()));
   else if (settingId == SETTING_VIDEO_CMS3DLUT)
     CSettings::Get().SetString(SETTING_VIDEO_CMS3DLUT, static_cast<std::string>(static_cast<const CSettingString*>(setting)->GetValue()));
+  else if (settingId == SETTING_VIDEO_CMSWHITEPOINT)
+    CSettings::Get().SetInt(SETTING_VIDEO_CMSWHITEPOINT, static_cast<int>(static_cast<const CSettingInt*>(setting)->GetValue()));
+  else if (settingId == SETTING_VIDEO_CMSPRIMARIES)
+    CSettings::Get().SetInt(SETTING_VIDEO_CMSPRIMARIES, static_cast<int>(static_cast<const CSettingInt*>(setting)->GetValue()));
   else if (settingId == SETTING_VIDEO_CMSGAMMAMODE)
     CSettings::Get().SetInt(SETTING_VIDEO_CMSGAMMAMODE, static_cast<int>(static_cast<const CSettingInt*>(setting)->GetValue()));
   else if (settingId == SETTING_VIDEO_CMSGAMMA)

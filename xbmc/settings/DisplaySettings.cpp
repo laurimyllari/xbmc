@@ -797,6 +797,33 @@ void CDisplaySettings::SettingOptionsCmsModesFiller(const CSetting *setting, std
   }
 }
 
+void CDisplaySettings::SettingOptionsCmsWhitepointsFiller(const CSetting *setting, std::vector< std::pair<std::string, int> > &list, int &current, void *data)
+{
+  const static std::string cmsWhitepointLabels[] = { "D65", "D93" }; // FIXME: should be moved to ColorManager.h?
+  for (int i = 0; i < CMS_WHITEPOINT_COUNT; i++)
+  {
+    CMS_WHITEPOINT whitepoint = (CMS_WHITEPOINT) i;
+    list.push_back(std::make_pair(cmsWhitepointLabels[i], whitepoint));
+  }
+}
+
+void CDisplaySettings::SettingOptionsCmsPrimariesFiller(const CSetting *setting, std::vector< std::pair<std::string, int> > &list, int &current, void *data)
+{
+  const static std::string cmsPrimariesLabels[] = {
+    "Automatic",
+    "HDTV",
+    "SDTV",
+    "NTSC 1953",
+    "PAL/SECAM 1975",
+    "HDTV 1988",
+  }; // FIXME: should be moved to ColorManager.h?
+  for (int i = 0; i < CMS_PRIMARIES_COUNT; i++)
+  {
+    CMS_PRIMARIES primaries = (CMS_PRIMARIES) i;
+    list.push_back(std::make_pair(cmsPrimariesLabels[i], primaries));
+  }
+}
+
 void CDisplaySettings::SettingOptionsCmsGammaModesFiller(const CSetting *setting, std::vector< std::pair<std::string, int> > &list, int &current, void *data)
 {
   const static std::string cmsGammaModeLabels[] = {

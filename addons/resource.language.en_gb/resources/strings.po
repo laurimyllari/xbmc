@@ -7367,7 +7367,43 @@ msgctxt "#16047"
 msgid "Absolute"
 msgstr ""
 
-#empty strings from id 16044 to 16099
+#: xbmc/video/dialogs/GUIDialogCMSSettings.cpp
+#. whitepoint labels
+msgctxt "#16048"
+msgid "D65 (standard)"
+msgstr ""
+
+msgctxt "#16049"
+msgid "D93 (Japanese NTSC)"
+msgstr ""
+
+#: xbmc/video/dialogs/GUIDialogCMSSettings.cpp
+#. primaries labels
+msgctxt "#16050"
+msgid "Automatic"
+msgstr ""
+
+msgctxt "#16051"
+msgid "HDTV (BT.709)"
+msgstr ""
+
+msgctxt "#16052"
+msgid "SDTV (SMPTE C)"
+msgstr ""
+
+msgctxt "#16053"
+msgid "NTSC 1953 (BT.470 M)"
+msgstr ""
+
+msgctxt "#16054"
+msgid "PAL/SECAM 1975 (BT.470 B/G)"
+msgstr ""
+
+msgctxt "#16055"
+msgid "HDTV 1988 (SMPTE 240M)"
+msgstr ""
+
+#empty strings from id 16056 to 16099
 
 #: xbmc/video/windows/GUIWindowVideoNav.cpp
 msgctxt "#16100"
@@ -16367,7 +16403,19 @@ msgctxt "#36559"
 msgid "%1.2f"
 msgstr ""
 
-#empty strings from id 36560 to 36599
+#. label of a setting, allowing to specify the display whitepoint
+#: xbmc/video/dialogs/GUIDialogCMSSettings.cpp
+msgctxt "#36560"
+msgid "Whitepoint"
+msgstr ""
+
+#. label of a setting, allowing to specify the display primaries
+#: xbmc/video/dialogs/GUIDialogCMSSettings.cpp
+msgctxt "#36561"
+msgid "Primaries"
+msgstr ""
+
+#empty strings from id 36562 to 36599
 #reserved strings 365XX
 
 #. Description of settings category "Music -> Library" with label #14022
