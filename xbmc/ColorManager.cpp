@@ -122,7 +122,7 @@ bool CColorManager::GetVideo3dLut(int videoFlags, int *cmsToken, int *clutSize, 
 #endif
 
       // sample the transformation
-      *clutSize = 64;
+      *clutSize = 1 << CSettings::Get().GetInt("videoscreen.cmslutsize");
 #ifdef _DEBUG
       start = CurrentHostCounter();
 #endif
@@ -184,6 +184,8 @@ bool CColorManager::CheckConfiguration(int cmsToken, int flags)
       return false; // gamma mode changed
     if (curIccGamma != CSettings::Get().GetInt("videoscreen.cmsgamma"))
       return false; // effective gamma changed
+    if (curClutSize != 1 << CSettings::Get().GetInt("videoscreen.cmslutsize"))
+      return false; // CLUT size changed
     // TODO: check other parameters
     break;
   default:

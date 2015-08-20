@@ -50,6 +50,7 @@
 #define SETTING_VIDEO_CMSPRIMARIES        "videoscreen.cmsprimaries"
 #define SETTING_VIDEO_CMSGAMMAMODE        "videoscreen.cmsgammamode"
 #define SETTING_VIDEO_CMSGAMMA            "videoscreen.cmsgamma"
+#define SETTING_VIDEO_CMSLUTSIZE          "videoscreen.cmslutsize"
 
 CGUIDialogCMSSettings::CGUIDialogCMSSettings()
     : CGUIDialogSettingsManualBase(WINDOW_DIALOG_CMS_OSD_SETTINGS, "VideoOSDSettings.xml")
@@ -169,6 +170,14 @@ void CGUIDialogCMSSettings::InitializeSettings()
   if (currentGamma == 0.0) currentGamma = 2.20;
   CSettingNumber *settingCmsGamma = AddSlider(groupColorManagement, SETTING_VIDEO_CMSGAMMA, 36558, 0, currentGamma, 36559, 1.6, 0.05, 2.8, 36558, usePopup);
   settingCmsGamma->SetDependencies(depsCmsGamma);
+
+  int currentLutSize = CSettings::Get().GetInt(SETTING_VIDEO_CMSLUTSIZE);
+  entries.clear();
+  entries.push_back(std::make_pair(16056, 4));
+  entries.push_back(std::make_pair(16057, 6));
+  entries.push_back(std::make_pair(16058, 8));
+  CSettingInt *settingCmsLutSize = AddSpinner(groupColorManagement, SETTING_VIDEO_CMSLUTSIZE, 36562, 0, currentLutSize, entries);
+  settingCmsLutSize->SetDependencies(depsCmsIcc);
 }
 
 void CGUIDialogCMSSettings::OnSettingChanged(const CSetting *setting)
@@ -193,6 +202,8 @@ void CGUIDialogCMSSettings::OnSettingChanged(const CSetting *setting)
     CSettings::Get().SetInt(SETTING_VIDEO_CMSGAMMAMODE, static_cast<int>(static_cast<const CSettingInt*>(setting)->GetValue()));
   else if (settingId == SETTING_VIDEO_CMSGAMMA)
     CSettings::Get().SetInt(SETTING_VIDEO_CMSGAMMA, static_cast<float>(static_cast<const CSettingNumber*>(setting)->GetValue())*100);
+  else if (settingId == SETTING_VIDEO_CMSLUTSIZE)
+    CSettings::Get().SetInt(SETTING_VIDEO_CMSLUTSIZE, static_cast<int>(static_cast<const CSettingInt*>(setting)->GetValue()));
 }
 
 bool CGUIDialogCMSSettings::OnBack(int actionID)

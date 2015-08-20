@@ -7403,7 +7403,19 @@ msgctxt "#16055"
 msgid "HDTV 1988 (SMPTE 240M)"
 msgstr ""
 
-#empty strings from id 16056 to 16099
+msgctxt "#16056"
+msgid "16x16"
+msgstr ""
+
+msgctxt "#16057"
+msgid "64x64"
+msgstr ""
+
+msgctxt "#16058"
+msgid "256x256"
+msgstr ""
+
+#empty strings from id 16059 to 16099
 
 #: xbmc/video/windows/GUIWindowVideoNav.cpp
 msgctxt "#16100"
@@ -16413,6 +16425,12 @@ msgstr ""
 #: xbmc/video/dialogs/GUIDialogCMSSettings.cpp
 msgctxt "#36561"
 msgid "Primaries"
+msgstr ""
+
+#. label of a setting, allowing to specify the size of generated 3dlut
+#: xbmc/video/dialogs/GUIDialogCMSSettings.cpp
+msgctxt "#36562"
+msgid "CLUT resolution"
 msgstr ""
 
 #empty strings from id 36562 to 36599

@@ -2642,6 +2642,21 @@
           </dependencies>
           <control type="spinner" format="integer" />
         </setting>
+        <setting id="videoscreen.cmslutsize" type="integer" label="36562" help="36562">
+          <requirement>HAS_GL</requirement>
+          <level>3</level>
+          <default>6</default>
+          <constraints>
+            <minimum>4</minimum>
+            <step>1</step>
+            <maximum>8</maximum>
+          </constraints>
+          <dependencies>
+            <dependency type="visible" setting="videoscreen.cmsenabled" operator="is">true</dependency>
+            <dependency type="visible" setting="videoscreen.cmsmode" operator="is">1</dependency>
+          </dependencies>
+          <control type="spinner" format="integer" />
+        </setting>
       </group>
     </category>
     <category id="audiooutput" label="772" help="36360">
